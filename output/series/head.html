@@ -1,0 +1,128 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+@font-face{font-family:P;src:url(fonts/prompt500.ttf);font-weight:500}
+@font-face{font-family:P;src:url(fonts/prompt700.ttf);font-weight:700}
+html,body{margin:0;width:720px;height:1280px;overflow:hidden;background:#000;font-family:P}
+#stage{position:absolute;inset:0}
+#sub{position:absolute;left:40px;right:40px;top:790px;text-align:center;font-weight:700;font-size:46px;line-height:1.35}
+#sub span{display:inline-block;padding:2px 16px 6px;border-radius:10px}
+.n{color:#fff;text-shadow:0 0 6px #000,0 3px 0 #000,0 -2px 0 #000,3px 0 0 #000,-3px 0 0 #000}
+.y{color:#ffd23f;text-shadow:0 0 6px #000,0 3px 0 #000,0 -2px 0 #000,3px 0 0 #000,-3px 0 0 #000}
+.r,.w{color:#fff;background:#d7263d;box-shadow:0 4px 0 #7a1020}
+#end{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:#fff}
+</style></head>
+<body>
+<svg id="stage" width="720" height="1280" viewBox="0 0 720 1280"></svg>
+<div id="sub"></div>
+<div id="end"></div>
+<script>
+const CHANNEL = 'หลอนก่อนนอน';
+let TL = null;
+const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
+const lerp=(a,b,p)=>a+(b-a)*p;
+const ease=p=>{p=clamp(p);return p*p*(3-2*p)};
+const seg=(p,a,b)=>ease((p-a)/(b-a));
+
+const PAL={skin:'#e9c3a0',hair:'#1d1d24',top:'#2f4271',pants:'#5d6373',shoe:'#22232b',lip:'#b5503f'};
+const SH_NIGHT='rgba(6,8,22,0.82)', SH_DAY='rgba(22,28,52,0.84)';
+
+// ---------- character ----------
+function face(kind, sil){
+  const W='#fff', D='#1b1b22';
+  if(kind==='calm') return `<ellipse cx="-20" cy="-475" rx="9" ry="7" fill="${W}"/><ellipse cx="20" cy="-475" rx="9" ry="7" fill="${W}"/>
+    <circle cx="-19" cy="-475" r="4.5" fill="${D}"/><circle cx="21" cy="-475" r="4.5" fill="${D}"/>
+    <path d="M-32,-492 l22,-2 M10,-494 l22,2" stroke="${D}" stroke-width="5" stroke-linecap="round"/>
+    <path d="M-12,-440 q12,4 24,0" stroke="${D}" stroke-width="4" fill="none" stroke-linecap="round"/>`;
+  if(kind==='closed') return `<path d="M-30,-474 q10,7 20,0 M10,-474 q10,7 20,0" stroke="${D}" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+    <path d="M-32,-490 l22,0 M10,-490 l22,0" stroke="${D}" stroke-width="5" stroke-linecap="round"/>
+    <ellipse cx="0" cy="-440" rx="8" ry="6" fill="${D}"/>`;
+  if(kind==='scared') return `<ellipse cx="-21" cy="-476" rx="15" ry="16" fill="${W}" stroke="${D}" stroke-width="2"/><ellipse cx="21" cy="-476" rx="15" ry="16" fill="${W}" stroke="${D}" stroke-width="2"/>
+    <circle cx="-15" cy="-476" r="3.5" fill="${D}"/><circle cx="27" cy="-476" r="3.5" fill="${D}"/>
+    <path d="M-36,-500 q14,-10 26,-4 M10,-504 q14,-6 26,4" stroke="${D}" stroke-width="5" fill="none" stroke-linecap="round"/>
+    <ellipse cx="0" cy="-436" rx="7" ry="9" fill="${D}"/>`;
+  if(kind==='grin') return `<ellipse cx="-21" cy="-478" rx="13" ry="13" fill="${W}"/><ellipse cx="21" cy="-478" rx="13" ry="13" fill="${W}"/>
+    <circle cx="-21" cy="-478" r="2.6" fill="${D}"/><circle cx="21" cy="-478" r="2.6" fill="${D}"/>
+    <path d="M-36,-496 l24,8 M12,-488 l24,-8" stroke="${D}" stroke-width="5" stroke-linecap="round"/>
+    <path d="M-44,-452 Q0,-405 44,-452 Q0,-440 -44,-452Z" fill="${W}" stroke="${PAL.lip}" stroke-width="4"/>
+    <path d="M-30,-450 v10 M-18,-447 v16 M-6,-446 v18 M6,-446 v18 M18,-447 v16 M30,-450 v10" stroke="${D}" stroke-width="2"/>`;
+  if(kind==='sgrin') return `<ellipse cx="-22" cy="-480" rx="12" ry="9" fill="${W}"/><ellipse cx="22" cy="-480" rx="12" ry="9" fill="${W}"/>
+    <path d="M-46,-452 Q0,-400 46,-452 Q0,-438 -46,-452Z" fill="${W}"/>
+    <path d="M-32,-450 v10 M-19,-446 v17 M-6,-445 v20 M6,-445 v20 M19,-446 v17 M32,-450 v10" stroke="#05060f" stroke-width="2.5"/>`;
+  if(kind==='sscared') return `<ellipse cx="-21" cy="-478" rx="13" ry="15" fill="${W}"/><ellipse cx="21" cy="-478" rx="13" ry="15" fill="${W}"/>
+    <circle cx="-21" cy="-474" r="3" fill="#05060f"/><circle cx="21" cy="-474" r="3" fill="#05060f"/>
+    <ellipse cx="0" cy="-438" rx="8" ry="11" fill="${W}"/>`;
+  return '';
+}
+function leg(x,a,c){return `<g transform="translate(${x},-205) rotate(${a})"><rect x="-17" y="0" width="34" height="190" rx="12" fill="${c.pants}"/><ellipse cx="4" cy="196" rx="26" ry="13" fill="${c.shoe}"/></g>`}
+function arm(x,a,c){return `<g transform="translate(${x},-385) rotate(${a})"><rect x="-15" y="-12" width="30" height="190" rx="15" fill="${c.top}"/><circle cx="0" cy="186" r="18" fill="${c.skin}"/></g>`}
+// o: armL, armR (raise deg), walk (phase rad or null), face, sil (colour), faceOp
+function fig(o){
+  const c=o.sil?{skin:o.sil,hair:o.sil,top:o.sil,pants:o.sil,shoe:o.sil}:PAL;
+  const w=o.walk==null?0:Math.sin(o.walk)*22;
+  const bob=o.walk==null?0:-Math.abs(Math.cos(o.walk))*8;
+  let s=`<g transform="translate(0,${bob})">`;
+  s+=leg(-22,w,c)+leg(22,-w,c);
+  s+=arm(-80,(o.armL||0)+(o.walk==null?0:-w*0.8),c)+arm(80,-(o.armR||0)+(o.walk==null?0:-w*0.8),c);
+  s+=`<rect x="-68" y="-405" width="136" height="215" rx="40" fill="${c.top}"/>`;
+  if(!o.sil) s+=`<path d="M-30,-405 L0,-370 L30,-405" stroke="#24345c" stroke-width="6" fill="none"/>`;
+  s+=`<rect x="-16" y="-425" width="32" height="30" fill="${c.skin}"/>`;
+  s+=`<ellipse cx="-54" cy="-468" rx="9" ry="14" fill="${c.skin}"/><ellipse cx="54" cy="-468" rx="9" ry="14" fill="${c.skin}"/>`;
+  s+=`<ellipse cx="0" cy="-468" rx="54" ry="64" fill="${c.skin}"/>`;
+  s+=`<path d="M-57,-478 Q-62,-548 0,-542 Q62,-548 57,-478 Q50,-512 8,-514 Q-30,-512 -57,-478Z" fill="${c.hair}"/><path d="M-6,-541 q8,-22 22,-18 q-10,6 -8,18z" fill="${c.hair}"/>`;
+  if(o.face) s+=`<g opacity="${o.faceOp==null?1:o.faceOp}">${face(o.face,o.sil)}</g>`;
+  return s+'</g>';
+}
+const at=(x,y,sc,inner,extra='')=>`<g transform="translate(${x},${y}) scale(${sc}) ${extra}">${inner}</g>`;
+// shadow on wall: feet at baseboard, bigger + skewed
+const wallShadow=(x,o,col=SH_NIGHT,op=1)=>`<g opacity="${op}" transform="translate(${x},988) scale(1.28) skewX(-7)">${fig({...o,sil:col})}</g>`;
+
+// ---------- rooms ----------
+const MODES={
+ night:{wall:'#2a3358',floor:'#1b2140',base:'#202848',wood:'#3f3346',woodD:'#30283a',sky:'#16203f',frame:'#3c4672',moon:true,beam:'rgba(190,210,255,0.09)',curtain:'#4a3a64',lamp:'#56607f'},
+ bright:{wall:'#efe0c2',floor:'#b98d65',base:'#d7c3a0',wood:'#8b5e3c',woodD:'#6f4a2f',sky:'#0f1730',frame:'#d8c6a2',moon:false,beam:null,curtain:'#a0566a',lamp:'#fff3b0'},
+ morning:{wall:'#d3dbe8',floor:'#a2acbf',base:'#bcc6d6',wood:'#8b6b4f',woodD:'#6c523c',sky:'#bfe3ff',frame:'#f1f4f8',moon:false,beam:'rgba(255,238,190,0.28)',curtain:'#7c8fb8',lamp:'#c9cfdb'},
+};
+function room(mode,o={}){
+  const m=MODES[mode];
+  let s=`<rect x="-200" y="-200" width="1120" height="1190" fill="${m.wall}"/>`;
+  s+=`<rect x="-200" y="990" width="1120" height="500" fill="${m.floor}"/><rect x="-200" y="972" width="1120" height="20" fill="${m.base}"/>`;
+  // window
+  s+=`<rect x="62" y="222" width="246" height="296" rx="6" fill="${m.frame}"/><rect x="76" y="236" width="218" height="268" fill="${m.sky}"/>`;
+  if(m.moon) s+=`<circle cx="236" cy="300" r="30" fill="#f3efd2"/><circle cx="236" cy="300" r="52" fill="#f3efd2" opacity="0.12"/>`;
+  if(mode==='morning') s+=`<circle cx="140" cy="300" r="40" fill="#fff6d6"/>`;
+  s+=`<rect x="181" y="236" width="8" height="268" fill="${m.frame}"/><rect x="76" y="366" width="218" height="8" fill="${m.frame}"/>`;
+  s+=`<rect x="34" y="200" width="40" height="350" fill="${m.curtain}"/><rect x="296" y="200" width="40" height="350" fill="${m.curtain}"/><rect x="20" y="192" width="330" height="10" rx="5" fill="${m.woodD}"/>`;
+  // door or wardrobe
+  if(o.door){
+    const op=o.doorOpen||0;
+    s+=`<rect x="510" y="550" width="176" height="440" fill="${m.woodD}"/><rect x="520" y="560" width="156" height="430" fill="#0a0c18"/>`;
+    const w=156*(1-op*0.85);
+    s+=`<rect x="520" y="560" width="${w}" height="430" fill="${m.wood}"/>`;
+    if(op<0.5) s+=`<circle cx="${520+w-22}" cy="780" r="9" fill="#d9b55a"/>`;
+  } else if(!o.noWardrobe){
+    s+=`<rect x="508" y="470" width="196" height="520" rx="6" fill="${m.wood}"/><rect x="604" y="480" width="4" height="500" fill="${m.woodD}"/>
+        <rect x="586" y="700" width="8" height="40" rx="4" fill="#d9b55a"/><rect x="618" y="700" width="8" height="40" rx="4" fill="#d9b55a"/>`;
+  }
+  if(o.frames) s+=`<rect x="380" y="300" width="90" height="110" fill="${m.woodD}"/><rect x="390" y="310" width="70" height="90" fill="${m.sky}"/>
+       <rect x="560" y="320" width="110" height="80" fill="${m.woodD}"/><rect x="570" y="330" width="90" height="60" fill="${m.frame}"/>`;
+  // switch
+  s+=`<rect x="462" y="630" width="26" height="40" rx="4" fill="${m.base}" stroke="${m.woodD}" stroke-width="2"/><rect x="471" y="640" width="8" height="12" fill="${m.woodD}"/>`;
+  // lamp
+  s+=`<rect x="358" y="-200" width="4" height="290" fill="${m.woodD}"/><path d="M320,120 L340,86 L380,86 L400,120Z" fill="${m.woodD}"/>`;
+  const lampOn=mode==='bright';
+  if(lampOn) s+=`<circle cx="360" cy="128" r="120" fill="#fff3b0" opacity="0.22"/>`;
+  s+=`<circle cx="360" cy="126" r="16" fill="${m.lamp}"/>`;
+  if(m.beam) s+=`<polygon points="76,236 294,236 ${mode==='morning'?'560,1280 140,1280':'620,1280 230,1280'}" fill="${m.beam}"/>`;
+  return s;
+}
+const vignette=(k=0.7)=>`<defs><radialGradient id="vg" cx="50%" cy="48%" r="70%"><stop offset="55%" stop-color="#000" stop-opacity="0"/><stop offset="100%" stop-color="#000" stop-opacity="${k}"/></radialGradient></defs><rect width="720" height="1280" fill="url(#vg)"/>`;
+const cam=(cx,cy,z,inner,shx=0,shy=0)=>`<g transform="translate(${360+shx},${640+shy}) scale(${z}) translate(${-cx},${-cy})">${inner}</g>`;
+const shake=(t,a)=>[Math.sin(t*61)*a,Math.cos(t*47)*a];
+
+// big head close-up
+function closeHead(kind,look=0){
+  let f=fig({face:kind});
+  return f;
+}
+
