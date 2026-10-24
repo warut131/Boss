@@ -17,7 +17,7 @@ html,body{margin:0;width:720px;height:1280px;overflow:hidden;background:#000;fon
 <div id="sub"></div>
 <div id="end"></div>
 <script>
-const CHANNEL = '@yourchannel';
+const CHANNEL = 'หลอนก่อนนอน';
 let TL = null;
 const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
 const lerp=(a,b,p)=>a+(b-a)*p;
@@ -222,8 +222,8 @@ function draw(sc,lt,p,t){
 }
 
 function endCard(lt){
-  const a=seg(lt,0,0.6), b=seg(lt,2.2,2.8);
-  return `<div style="opacity:${a*(1-b)};position:absolute;top:520px;width:100%">
+  const a=seg(lt,0,0.6)*(1-seg(lt,1.9,2.3)), b=seg(lt,2.45,2.95);
+  return `<div style="opacity:${a};position:absolute;top:520px;width:100%">
       <div style="color:#ff6b8a;font-size:30px;font-weight:700">ตอนต่อไป</div>
       <div style="font-size:64px;font-weight:700;line-height:1.25;margin-top:6px">มีคนเคาะ<br>จากใต้เตียง</div>
       <div style="color:#8f9bc4;font-size:24px;margin-top:14px">เรื่องเล่าขนลุก · EP2</div></div>
