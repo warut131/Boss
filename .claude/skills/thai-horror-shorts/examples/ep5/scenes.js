@@ -1,5 +1,5 @@
 // ---------- EP5: ลิฟต์ที่หยุดชั้น 13 ----------
-const META={ep:5,next:'ตุ๊กตาที่<br>ย้ายที่ทุกคืน'};
+const META={next:'ตุ๊กตาที่<br>ย้ายที่ทุกคืน'};
 const backHead=`<ellipse cx="0" cy="-470" rx="57" ry="66" fill="${PAL.hair}"/>`;
 const backPerson=(x,y,s,o={})=>at(x,y,s,fig({armL:o.armL||0,armR:o.armR||0})+backHead);
 // woman: long hair; back view = hair covers the head

@@ -105,7 +105,7 @@ function endCard(lt){
   return `<div style="opacity:${a};position:absolute;top:520px;width:100%">
       <div style="color:#ff6b8a;font-size:30px;font-weight:700">ตอนต่อไป</div>
       <div style="font-size:60px;font-weight:700;line-height:1.25;margin-top:6px">${META.next}</div>
-      <div style="color:#8f9bc4;font-size:24px;margin-top:14px">เรื่องเล่าขนลุก · EP${META.ep+1}</div></div>
+      <div style="color:#8f9bc4;font-size:24px;margin-top:14px">เรื่องเล่าขนลุก</div></div>
     <div style="opacity:${b};position:absolute;top:560px;width:100%">
       <div style="color:#c7cfe8;font-size:30px">อย่าลืมกดติดตาม</div>
       <div style="font-size:66px;font-weight:700;margin-top:4px">${CHANNEL}</div><div style="display:inline-block;margin-top:26px;background:#e3263f;color:#fff;font-size:36px;font-weight:700;padding:6px 40px 12px;border-radius:40px;box-shadow:0 5px 0 #8a1020;transform:scale(${1+0.06*Math.sin(lt*7)})">+ ติดตาม</div><div style="color:#8f9bc4;font-size:28px;margin-top:22px">แล้วเจอกันตอนหน้านะ</div></div>`;
@@ -124,8 +124,8 @@ function render(t){
   if(cur&&cur.style!=='k'){
     const k=clamp((t-cur.start+0.05)/0.12), sc2=0.85+0.15*k;
     const [sx,sy]=cur.style==='x'?shake(t,6):[0,0];
-    const txt=cur.style==='m'?`“${cur.text}”`:cur.text;
-    sub.innerHTML=`<span class="${cur.style}" style="white-space:nowrap;transform:translate(${sx}px,${sy}px) scale(${sc2})">${txt}</span>`;
+    const txt=(cur.style==='m'||cur.style==='f')?`“${cur.text}”`:cur.text;
+    sub.innerHTML=`<span class="${cur.style==='f'?'m':cur.style}" style="white-space:nowrap;transform:translate(${sx}px,${sy}px) scale(${sc2})">${txt}</span>`;
     const sp=sub.firstChild; let fs=46; while(sp.offsetWidth>640&&fs>36){fs-=2; sp.style.fontSize=fs+'px';}
     if(sp.offsetWidth>640){ // break at the space nearest the middle
       const sps=[...txt.matchAll(/ /g)].map(m=>m.index); const mid=txt.length/2;

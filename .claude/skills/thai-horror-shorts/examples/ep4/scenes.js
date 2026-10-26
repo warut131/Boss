@@ -1,5 +1,5 @@
 // ---------- EP4: กระจกที่ไม่ยอมกะพริบตา ----------
-const META={ep:4,next:'ลิฟต์ที่หยุด<br>ชั้น 13'};
+const META={next:'ลิฟต์ที่หยุด<br>ชั้น 13'};
 const _face=face;
 face=function(kind,sil){
   if(kind==='stare') return `<ellipse cx="-21" cy="-476" rx="14" ry="14" fill="#fff"/><ellipse cx="21" cy="-476" rx="14" ry="14" fill="#fff"/>

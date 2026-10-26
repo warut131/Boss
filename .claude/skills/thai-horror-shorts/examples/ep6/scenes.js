@@ -1,5 +1,5 @@
 // ---------- EP6: ตุ๊กตาที่ย้ายที่ทุกคืน ----------
-const META={ep:6,next:'เสียงหัวเราะ<br>ในห้องน้ำโรงเรียน'};
+const META={next:'เสียงหัวเราะ<br>ในห้องน้ำโรงเรียน'};
 const _face=face;
 face=function(kind,sil){
   if(kind==='button') return `<circle cx="-21" cy="-476" r="15" fill="#0b0b0f"/><circle cx="21" cy="-476" r="15" fill="#0b0b0f"/>

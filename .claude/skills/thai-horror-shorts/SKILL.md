@@ -5,13 +5,13 @@ description: Make 9:16 Thai horror-story shorts (Reels/TikTok/Shorts) in a flat 
 
 # Thai horror shorts (หลอนก่อนนอน)
 
-Each episode is about 60 s long, has 12 to 15 scenes, is narrated in the second person ("คุณ…") and ends on a twist, then an end card ("ตอนต่อไป …" followed by "อย่าลืมกดติดตาม").
+Each episode is about 60–75 s long, has 12 to 17 scenes, is narrated in the second person ("คุณ…") and ends on a twist, then an end card ("ตอนต่อไป …" followed by "อย่าลืมกดติดตาม"). **No EP numbers** appear on end cards or covers; the user asked for them to be removed. Well-known legends work well, for example Japanese ones such as Kuchisake-onna and Hanako-san.
 Everything is generated in code. The art is SVG drawn in Chromium and captured frame by frame with Playwright. The voice comes from Microsoft Edge TTS. Music and SFX are synthesised. No stock assets are used, so the output has no copyright issues.
 
 ## Requirements
 
 - `ffmpeg`/`ffprobe`, `python3` with `numpy`, `node` with `playwright` (Chromium), and `pip install edge-tts`.
-- **Network access to `speech.platform.bing.com`.** The environment's network policy must allow this host, otherwise TTS fails with 403 or DNS errors. Call `edge-tts` with `--proxy "$HTTPS_PROXY"`. It sometimes returns `NoAudioReceived`; `gen_ep.py` retries automatically.
+- **Network access to `speech.platform.bing.com`.** The environment's network policy must allow this host, otherwise TTS fails with 403 or DNS errors. Call `edge-tts` with `--proxy "$HTTPS_PROXY"`. It sometimes returns `NoAudioReceived` or a truncated file; `gen_ep.py` validates each file and retries up to 15 times with backoff.
 - `export NODE_PATH=$(npm root -g)` when Playwright is installed globally (`build.sh` sets this).
 
 ## Layout
@@ -30,7 +30,7 @@ engine/
   fonts/         Prompt 500/700 (OFL)
   outro.wav      "อย่าลืมกดติดตาม หลอนก่อนนอน แล้วเจอกันตอนหน้านะ"
   make_outro.sh  regenerate outro.wav for another channel name
-examples/ep4 ep5 ep6   complete episodes (script.py + scenes.js) to copy from
+examples/ep4 ep5 ep6 kuchisake   complete episodes (script.py + scenes.js) to copy from
 ```
 
 ## Making an episode
@@ -39,7 +39,7 @@ examples/ep4 ep5 ep6   complete episodes (script.py + scenes.js) to copy from
 2. Create `EPDIR/script.py` (copy an example):
    - `SCRIPT = [(scene, [(text, style), ...]), ...]`
      - Styles: `n` white, `y` yellow, `r` red box (narrator, male `th-TH-NiwatNeural`)
-     - `m` is a distant female voice (subtitle is pink italic in quotes)
+     - `f` is a female voice close by, and `m` is a distant female voice (both get pink italic subtitles in quotes)
      - `x` is a distorted female whisper (red box, shaking)
      - `k:<sfx>:<sec>` is an SFX-only pause with no voice and no subtitle
    - `SCENE_PAD = {scene: extra_seconds}` gives a pause after a scene. Use it for dread.
@@ -48,11 +48,11 @@ examples/ep4 ep5 ep6   complete episodes (script.py + scenes.js) to copy from
    - `EVENTS(sc, ch)` returns `[(sfx, time, volume)]`. Times come from `sc[n]["start"]` or chunk starts.
 3. Run `python3 engine/gen_ep.py EPDIR` and read the printed timings. Total length should be about 55–68 s.
 4. Write `EPDIR/scenes.js`:
-   - Define `const META={ep:N,next:'ชื่อตอนต่อไป<br>บรรทัดสอง'};`
+   - Define `const META={next:'ชื่อตอนต่อไป<br>บรรทัดสอง'};`
    - Define `function draw(sc,lt,p,t){ switch(sc){…} return g+vignette(0.7); }`. Here `lt` is the time within the scene, `p` is the progress from 0 to 1, and `t` is the absolute time.
 5. Preview before the full render: `engine/build.sh EPDIR out.mp4 preview 2,8,15,...`. Tile the PNGs with `ffmpeg … tile=8x2` and **look at them**. Fix overlaps, unreadable dark-on-dark, and subtitles covering the key prop.
 6. Full build: `engine/build.sh EPDIR name_epN.mp4` takes about 1.5 min for 60 s. Run it in the background and check a few frames of the final MP4.
-7. Make the cover: `node engine/cover.js EPDIR N "บรรทัด1" "บรรทัด2" "<svg expression>"`.
+7. Make the cover: `node engine/cover.js EPDIR "<badge, e.g. ตำนานผีญี่ปุ่น>" "บรรทัด1" "บรรทัด2" "<svg expression>" cover_name.png`. Do not put an EP number on the badge.
 8. Give the user the title, a caption, and **exactly 5 hashtags** (the user's preference):
    `#เรื่องผี #หลอนก่อนนอน #การ์ตูนผี #ขนลุก #fyp`
 
@@ -75,6 +75,7 @@ examples/ep4 ep5 ep6   complete episodes (script.py + scenes.js) to copy from
   - EP4: `bathroom/mirror/tiles`
   - EP5: `elevator/corridor/woman/building/backPerson`
   - EP6: `bear/shelf/desk/playback` (night-vision camera UI)
+  - kuchisake: `jpStreet` (Japanese night street with vending machine), `womanK` (red coat, mask, `maskY`, `slit`, `scissors`), `withPal` (recolour `fig`), split-screen choice card
 
 ## House style that worked
 
