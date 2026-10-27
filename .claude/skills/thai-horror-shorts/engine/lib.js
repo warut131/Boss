@@ -123,9 +123,9 @@ function render(t){
   TL.chunks.forEach((c,i)=>{const nx=TL.chunks[i+1]; const until=Math.min(c.end+0.6,nx?nx.start:1e9); if(t>=c.start-0.05&&t<until) cur=c;});
   if(cur&&cur.style!=='k'){
     const k=clamp((t-cur.start+0.05)/0.12), sc2=0.85+0.15*k;
-    const [sx,sy]=cur.style==='x'?shake(t,6):[0,0];
-    const txt=(cur.style==='m'||cur.style==='f')?`“${cur.text}”`:cur.text;
-    sub.innerHTML=`<span class="${cur.style==='f'?'m':cur.style}" style="white-space:nowrap;transform:translate(${sx}px,${sy}px) scale(${sc2})">${txt}</span>`;
+    const [sx,sy]=(cur.style==='x'||cur.style==='v')?shake(t,6):[0,0];
+    const txt='mfc'.includes(cur.style)?`“${cur.text}”`:cur.text;
+    sub.innerHTML=`<span class="${'fc'.includes(cur.style)?'m':cur.style==='v'?'x':cur.style}" style="white-space:nowrap;transform:translate(${sx}px,${sy}px) scale(${sc2})">${txt}</span>`;
     const sp=sub.firstChild; let fs=46; while(sp.offsetWidth>640&&fs>36){fs-=2; sp.style.fontSize=fs+'px';}
     if(sp.offsetWidth>640){ // break at the space nearest the middle
       const sps=[...txt.matchAll(/ /g)].map(m=>m.index); const mid=txt.length/2;

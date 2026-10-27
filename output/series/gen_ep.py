@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Narration + timeline for one episode. usage: gen_ep.py EPDIR   (EPDIR/script.py defines SCRIPT, SCENE_PAD, SIL)
-Styles: n/r/y narrator, m = distant female voice, x = distorted female whisper, k:<sfx>:<sec> = SFX-only gap.
+Styles: n/r/y narrator, f = female voice close by, c = little girl, v = distorted male, m = distant female voice, x = distorted female whisper, k:<sfx>:<sec> = SFX-only gap.
 Adds the spoken 'follow' outro on the end card."""
-import json, os, subprocess, sys, importlib.util
+import json, os, subprocess, sys, time, importlib.util
 
 EP = os.path.abspath(sys.argv[1])
 spec = importlib.util.spec_from_file_location("script", os.path.join(EP, "script.py"))
@@ -23,11 +23,17 @@ def dur(f):
 
 def tts(text, out, voice=MALE, rate="-10%", pitch="-5Hz", fx=None):
     mp3 = out.replace(".wav", ".mp3")
-    for _ in range(4):
-        if os.path.exists(mp3) and os.path.getsize(mp3) > 0:
+    ok = lambda: os.path.exists(mp3) and subprocess.run(
+        ["ffprobe", "-v", "error", mp3], capture_output=True).returncode == 0 and os.path.getsize(mp3) > 2000
+    for i in range(15):  # edge-tts sometimes returns nothing or a truncated file
+        if ok():
             break
-        subprocess.run(["edge-tts", "--proxy", PROXY, "--voice", voice, f"--rate={rate}", f"--pitch={pitch}",
-                        "--text", text, "--write-media", mp3], capture_output=True)
+        if i:
+            time.sleep(min(2 * i, 8))
+        r = subprocess.run(["edge-tts", "--proxy", PROXY, "--voice", voice, f"--rate={rate}", f"--pitch={pitch}",
+                            "--text", text, "--write-media", mp3], capture_output=True)
+        if r.returncode != 0 and os.path.exists(mp3):
+            os.remove(mp3)
     af = ("silenceremove=start_periods=1:start_threshold=-45dB,areverse,"
           "silenceremove=start_periods=1:start_threshold=-45dB,areverse")
     if fx:
@@ -48,6 +54,12 @@ for sc, chunks in S.SCRIPT:
             if style == "m":
                 tts(text, out, FEMALE, rate="-20%", pitch="-8Hz",
                     fx="lowpass=f=2600,highpass=f=250,aecho=0.8:0.6:90|170:0.4|0.25,volume=0.9")
+            elif style == "f":  # female voice, close by
+                tts(text, out, FEMALE, rate="-18%", pitch="-12Hz", fx="aecho=0.8:0.5:40:0.25,volume=1.1")
+            elif style == "c":  # little girl's voice
+                tts(text, out, FEMALE, rate="-15%", pitch="+25Hz", fx="aecho=0.8:0.6:60|130:0.35|0.2,volume=1.1")
+            elif style == "v":  # the narrator's own voice, gone wrong
+                tts(text, out, MALE, rate="-35%", pitch="-30Hz", fx="highpass=f=150,aecho=0.8:0.75:50|120|200:0.5|0.35|0.25,volume=1.6")
             elif style == "x":
                 tts(text, out, FEMALE, rate="-40%", pitch="-35Hz",
                     fx="highpass=f=200,aecho=0.8:0.75:50|120|200:0.5|0.35|0.25,volume=1.6")

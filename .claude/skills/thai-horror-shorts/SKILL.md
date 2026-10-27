@@ -30,7 +30,7 @@ engine/
   fonts/         Prompt 500/700 (OFL)
   outro.wav      "อย่าลืมกดติดตาม หลอนก่อนนอน แล้วเจอกันตอนหน้านะ"
   make_outro.sh  regenerate outro.wav for another channel name
-examples/ep4 ep5 ep6 kuchisake   complete episodes (script.py + scenes.js) to copy from
+examples/ep4 ep5 ep6 kuchisake hanako   complete episodes (script.py + scenes.js) to copy from
 ```
 
 ## Making an episode
@@ -39,7 +39,8 @@ examples/ep4 ep5 ep6 kuchisake   complete episodes (script.py + scenes.js) to co
 2. Create `EPDIR/script.py` (copy an example):
    - `SCRIPT = [(scene, [(text, style), ...]), ...]`
      - Styles: `n` white, `y` yellow, `r` red box (narrator, male `th-TH-NiwatNeural`)
-     - `f` is a female voice close by, and `m` is a distant female voice (both get pink italic subtitles in quotes)
+     - `f` is a female voice close by, `m` is a distant female voice, and `c` is a little girl (all get pink italic subtitles in quotes)
+     - `v` is the narrator's own voice, distorted, for a final reveal (red box, shaking)
      - `x` is a distorted female whisper (red box, shaking)
      - `k:<sfx>:<sec>` is an SFX-only pause with no voice and no subtitle
    - `SCENE_PAD = {scene: extra_seconds}` gives a pause after a scene. Use it for dread.
@@ -76,6 +77,7 @@ examples/ep4 ep5 ep6 kuchisake   complete episodes (script.py + scenes.js) to co
   - EP5: `elevator/corridor/woman/building/backPerson`
   - EP6: `bear/shelf/desk/playback` (night-vision camera UI)
   - kuchisake: `jpStreet` (Japanese night street with vending machine), `womanK` (red coat, mask, `maskY`, `slit`, `scissors`), `withPal` (recolour `fig`), split-screen choice card
+  - hanako: `schoolExt`, `hallway`, three-stall `bathroom({open3,peek,feet,eyes,light})`, `girl()` (bob cut, red skirt); it overrides `window.setup` to derive knock times from `k` chunks
 
 ## House style that worked
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Narration + timeline for one episode. usage: gen_ep.py EPDIR   (EPDIR/script.py defines SCRIPT, SCENE_PAD, SIL)
-Styles: n/r/y narrator, f = female voice close by, m = distant female voice, x = distorted female whisper, k:<sfx>:<sec> = SFX-only gap.
+Styles: n/r/y narrator, f = female voice close by, c = little girl, v = distorted male, m = distant female voice, x = distorted female whisper, k:<sfx>:<sec> = SFX-only gap.
 Adds the spoken 'follow' outro on the end card."""
 import json, os, subprocess, sys, time, importlib.util
 
@@ -56,6 +56,10 @@ for sc, chunks in S.SCRIPT:
                     fx="lowpass=f=2600,highpass=f=250,aecho=0.8:0.6:90|170:0.4|0.25,volume=0.9")
             elif style == "f":  # female voice, close by
                 tts(text, out, FEMALE, rate="-18%", pitch="-12Hz", fx="aecho=0.8:0.5:40:0.25,volume=1.1")
+            elif style == "c":  # little girl's voice
+                tts(text, out, FEMALE, rate="-15%", pitch="+25Hz", fx="aecho=0.8:0.6:60|130:0.35|0.2,volume=1.1")
+            elif style == "v":  # the narrator's own voice, gone wrong
+                tts(text, out, MALE, rate="-35%", pitch="-30Hz", fx="highpass=f=150,aecho=0.8:0.75:50|120|200:0.5|0.35|0.25,volume=1.6")
             elif style == "x":
                 tts(text, out, FEMALE, rate="-40%", pitch="-35Hz",
                     fx="highpass=f=200,aecho=0.8:0.75:50|120|200:0.5|0.35|0.25,volume=1.6")
