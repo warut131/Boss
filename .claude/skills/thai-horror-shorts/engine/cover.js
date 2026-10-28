@@ -6,7 +6,10 @@ const [dir, ep, l1, l2, expr, outName] = process.argv.slice(2);
 (async () => {
   const browser = await chromium.launch();
   const page = await browser.newPage({ viewport: { width: 720, height: 1280 }, deviceScaleFactor: 1.5 });
-  await page.goto('file://' + path.resolve(dir, 'scene.html'));
+  // rebuild the page from the episode's current scenes.js so covers never use a stale render page
+  const fs = require('fs'), E = __dirname;
+  fs.writeFileSync(path.resolve(dir, 'cover_page.html'), fs.readFileSync(path.join(E, 'head.html'), 'utf8') + fs.readFileSync(path.join(E, 'lib.js'), 'utf8') + fs.readFileSync(path.resolve(dir, 'scenes.js'), 'utf8') + '</script></body></html>');
+  await page.goto('file://' + path.resolve(dir, 'cover_page.html'));
   await page.evaluate(([ep, l1, l2, expr]) => {
     TL = { allKnocks: [] };
     const art = new Function('return ' + expr)();
