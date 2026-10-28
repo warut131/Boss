@@ -79,6 +79,13 @@ examples/ep4 ep5 ep6 kuchisake hanako   complete episodes (script.py + scenes.js
   - kuchisake: `jpStreet` (Japanese night street with vending machine), `womanK` (red coat, mask, `maskY`, `slit`, `scissors`), `withPal` (recolour `fig`), split-screen choice card
   - hanako: `schoolExt`, `hallway`, three-stall `bathroom({open3,peek,feet,eyes,light})`, `girl()` (bob cut, red skirt); it overrides `window.setup` to derive knock times from `k` chunks
 
+## Multi-part series
+
+`examples/rules/` is a 3-part serial ("ห้องเช่ากฎ 7 ข้อ"). Shared props live in `common.js`. Each part's `scenes.js` is `cat common.js partN/part.js`. Label parts with words, not numbers: ตอนแรก / ตอนสอง / ตอนจบ (on the cover badge and in the end-card `next`).
+- End parts 1 and 2 on a cliffhanger.
+- Open parts 2 and 3 with a one-line recap ("ตอนที่แล้ว…").
+- Make the final part loop back on the first one.
+
 ## House style that worked
 
 - Dark navy night palette, warm door light, a vignette on everything, and slow push-in cameras.
