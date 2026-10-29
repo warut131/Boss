@@ -86,6 +86,27 @@ examples/ep4 ep5 ep6 kuchisake hanako   complete episodes (script.py + scenes.js
 - Open parts 2 and 3 with a one-line recap ("ตอนที่แล้ว…").
 - Make the final part loop back on the first one.
 
+## 3D style (Three.js)
+
+`examples/teke3d/` uses real 3D instead of SVG: a toy/diorama look with low-poly scenery, soft shadows, fog, street lamps, blinking crossing lights and a camera that moves through the scene. Audio, music and the mix are the same as for 2D episodes.
+
+1. Install Three.js once: `npm install three@0.169.0` in a working folder.
+2. In the episode folder, create two symlinks:
+   - `three` → `node_modules/three`
+   - `fonts` → `engine/fonts`
+3. Write `script.py` and run `engine/gen_ep.py`, `engine/gen_music.py` and `engine/mix_ep.py` as for 2D.
+4. Put the episode in `EPDIR/scene3d.html`, starting from the example. It defines `window.setup(tl)` and `window.render(t)`:
+   - `render(t)` places the meshes and the camera through `shot(...)`, then calls `R.render`.
+   - HTML overlays draw the subtitles, the title and the end card.
+5. Preview with `EP=EPDIR node engine3d/render3d.js preview 3,10,20`, then render with `video 30`. Then mux `video_noaudio.mp4` with `mix.wav` using ffmpeg.
+6. Make the cover with `EP=EPDIR node engine3d/cover3d.js <t> "badge" "line1" "line2" cover.png`.
+
+Things to know:
+- Chromium renders WebGL in software through SwiftShader, at about 0.6–1 s per frame. A 60 s clip takes about 25–30 min, so run it in the background.
+- When waiting on the render, wait on its PID (`kill -0`). Never use `pgrep -f` with a pattern that also appears in your own wait loop, because the loop then matches itself.
+- Characters need the fill light that follows the camera (`fill`), or their faces go black. Hair should be a top hemisphere, not a full sphere, or it covers the face.
+- For the half-body ghost lying forward, `look(1)` makes the face point forward.
+
 ## House style that worked
 
 - Dark navy night palette, warm door light, a vignette on everything, and slow push-in cameras.
