@@ -511,6 +511,8 @@ function recalc(book){
     if (m) return (+resolve(name,m[1])||0) + (+resolve(name,m[2])||0);
     m = /^IF\(([A-Z]+\d+)>=([\d.]+),"([^"]*)"\)$/.exec(f);
     if (m) return (+resolve(name,m[1])||0) >= +m[2] ? m[3] : false;
+    m = /^IF\((.+)="","",(.+)\)$/.exec(f); // blank-template form: IF(X="","",X)
+    if (m && m[1] === m[2]) { const v = resolve(name, m[1]); return v === null || v === "" ? "" : v; }
     return undefined; // unknown formula: drop cache, Excel recalculates on open
   };
   for (const name in book) for (const ref in book[name].cells) if (book[name].formula(ref) !== null) get(name, ref);

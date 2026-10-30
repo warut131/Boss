@@ -27,3 +27,9 @@
 
 ## สำหรับผู้พัฒนา
 แก้โค้ดที่ `src/app.html` แล้วรัน `python3 build.py` เพื่อรวม `vendor/jszip-3.10.1.min.js` เข้าเป็น `SI_VGM_Tool.html`
+
+## ทำ Template เปล่าจากไฟล์ที่กรอกแล้ว
+```
+python3 make_blank_template.py ไฟล์ที่กรอกแล้ว.xlsx Template_เปล่า.xlsx
+```
+ล้างข้อมูลงาน (Booking, เรือ, ท่าเรือ, จำนวนตู้/น้ำหนัก, I/V, รายการตู้, ข้อมูล VGM) แต่คงข้อมูลคงที่ (Shipper, Consignee, Notify, Agent, ผู้ติดต่อ, FREIGHT PREPAID) และรูปแบบ/สูตรไว้
