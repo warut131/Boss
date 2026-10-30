@@ -76,13 +76,13 @@ button:disabled{opacity:.5;cursor:not-allowed}
       <input type="file" id="fileBooking" accept=".xlsx" hidden>
     </div>
     <div class="drop" id="dropTemplate" tabindex="0">
-      <b>Template SI / VGM (.xlsx) ของปลายทางนี้</b>
+      <b>Template SI / VGM (.xlsx) — ไม่ต้องใส่ก็ได้</b>
       <span class="muted">ลากไฟล์มาวาง หรือคลิกเพื่อเลือก</span>
       <small id="nameTemplate"></small>
       <input type="file" id="fileTemplate" accept=".xlsx" hidden>
     </div>
   </div>
-  <p class="muted" id="tplMemo"></p>
+  <p class="muted"><span id="tplMemo"></span> <a href="#" id="useBuiltin" class="hidden">กลับไปใช้ Template ในตัว</a></p>
 </section>
 
 <div id="form" class="hidden">
@@ -295,13 +295,16 @@ setupDrop("dropTemplate","fileTemplate", async f => {
         try { localStorage.setItem("sivgm_tpl", JSON.stringify({ name:f.name, data: b64(templateBuf) })); } catch(_){} }
   catch(e){ alert("อ่าน Template ไม่ได้: " + e.message); }
 });
-async function loadTemplate(buf, name){
+async function loadTemplate(buf, name, builtin){
   const t = await readTemplate(buf);
   templateBuf = buf; templateName = name;
   $("nameTemplate").textContent = name; $("dropTemplate").classList.add("done");
   $("p_consignee").value = t.consignee; $("p_notify").value = t.notify; $("p_agent").value = t.agent;
   if (!$("f_desc").value) $("f_desc").value = t.desc;
-  $("tplMemo").textContent = "Template จะถูกจำไว้ในเบราว์เซอร์นี้ ครั้งหน้าไม่ต้องเลือกใหม่ (เปลี่ยนได้โดยลากไฟล์ใหม่ทับ)";
+  $("tplMemo").textContent = builtin
+    ? "ใช้ Template ในตัวอยู่ วางแค่ Booking Request ได้เลย (ถ้าปลายทางอื่นให้ลากไฟล์ Template มาวางแทน)"
+    : "Template นี้จะถูกจำไว้ในเบราว์เซอร์นี้ ครั้งหน้าไม่ต้องเลือกใหม่";
+  $("useBuiltin").classList.toggle("hidden", builtin || !EMBEDDED_TPL);
   showForm();
 }
 function b64(buf){ let s=""; const u=new Uint8Array(buf); for (let i=0;i<u.length;i+=0x8000) s+=String.fromCharCode.apply(null,u.subarray(i,i+0x8000)); return btoa(s); }
@@ -585,8 +588,13 @@ $("btnBuild").onclick = async () => {
   } catch(e) { alert("สร้างไฟล์ไม่สำเร็จ: " + e.message); console.error(e); }
 };
 
-// restore remembered template
-try { const m = JSON.parse(localStorage.getItem("sivgm_tpl")||"null"); if (m) loadTemplate(unb64(m.data), m.name + " (จำไว้จากครั้งก่อน)").catch(()=>{}); } catch(_){}
+// template: one the user chose earlier, else the one built into this file
+const EMBEDDED_TPL = /*TPL*/null;
+function loadBuiltin(){ if (EMBEDDED_TPL) loadTemplate(unb64(EMBEDDED_TPL.data), EMBEDDED_TPL.name + " (ในตัว)", true).catch(()=>{}); }
+let remembered = null;
+try { remembered = JSON.parse(localStorage.getItem("sivgm_tpl")||"null"); } catch(_){}
+if (remembered) loadTemplate(unb64(remembered.data), remembered.name + " (จำไว้จากครั้งก่อน)").catch(loadBuiltin); else loadBuiltin();
+$("useBuiltin").onclick = e => { e.preventDefault(); try { localStorage.removeItem("sivgm_tpl"); } catch(_){} loadBuiltin(); };
 </script>
 </body>
 </html>

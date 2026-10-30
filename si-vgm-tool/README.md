@@ -4,7 +4,7 @@
 ดับเบิลคลิกเปิดใน Chrome / Edge ได้ทุกเครื่อง ไม่ต้องติดตั้ง ไม่ต้องต่อเน็ต ข้อมูลไม่ออกนอกเครื่อง
 
 ## วิธีใช้
-1. เปิด `SI_VGM_Tool.html`
+1. เปิด `SI_VGM_Tool_SRAU.html` (มี Template ในตัว วางแค่ Booking) หรือ `SI_VGM_Tool.html` (ต้องวาง Template เอง)
 2. ลากไฟล์ **Booking Request** (.xlsx) และ **Template SI/VGM** ของปลายทางนั้น (.xlsx) มาวาง
    - Template จะถูกจำไว้ในเบราว์เซอร์ ครั้งหน้าลากแค่ Booking
 3. ตรวจข้อมูล Shipment / คู่ค้า (แก้ได้ทุกช่อง)
