@@ -8,6 +8,7 @@
 
 1. เปิด `SI_VGM_Tool_SRAU.html` (มี Template ในตัว) หรือ `SI_VGM_Tool.html` (ต้องวาง Template เอง)
 2. ลาก **Booking Request** มาวาง — ข้อมูล Shipment / Pieces / kg / CBM เข้าเอง
+   - วาง **PDF ใบยืนยัน Booking ของ Shinki** (`SE…pdf`) และ **C Invoice PDF** ด้วย เพื่อตรวจเทียบ (ลากไฟล์แนบจากเมลมาทั้งหมดได้ ไฟล์ที่ไม่ใช้ เช่น P invoice / .csv / .xls จะถูกข้าม)
 3. กด **ดาวน์โหลดใบขอข้อมูลตู้** → ได้ `CONTAINER_INFO_{Booking}.xlsx` ส่งให้ทีมตู้
    - ทีมตู้กรอกเฉพาะช่องสีเหลือง: Container No. · Seal No. · Tare weight (ช่องอื่นถูกล็อกไว้)
 4. ได้ไฟล์กลับมา → ลากมาวางในช่องเดิม ข้อมูลเข้าตารางเอง (ถ้าทีมตอบเป็นข้อความทาง LINE ใช้ "วางข้อความ")
@@ -25,10 +26,13 @@
 ## การตรวจสอบ
 - เลขตู้ ISO 6346 (รูปแบบ + check digit), เลขตู้ซ้ำ, ช่องว่าง
 - ผลรวม Pieces / kg / CBM เทียบ Booking, จำนวนตู้เทียบ Booking
-- วันชั่งเลย CY Cut
+- วันชั่งเลย CY Cut / เลย VGM cut off ใน PDF Shinki
+- Tare ที่ยังไม่รู้ ปล่อยว่าง (ไม่ใส่ค่าเดา) จนกว่าทีมตู้จะส่งค่าจริง
+- **เทียบกับ PDF ใบยืนยัน Shinki** (อ่านด้วย OCR ในเครื่อง ใช้เวลา ~3–5 วินาที): Booking No., จำนวน/ขนาดตู้, ETD, ETA, POL, POD, Place of delivery, เรือ/Voyage, Carrier, Closing date/time เทียบ CY Cut
+- **เทียบกับ C Invoice PDF**: Invoice No., เรือ/Voyage, Shipping line, To Port, Destination (ถ้ามีรัฐ ต้องตรงด้วย), Sailing/ETD, ETA, จำนวนตู้, Pieces รวม
 
 ## สำหรับผู้พัฒนา
-แก้โค้ดที่ `src/app.html` แล้วรัน `python3 build.py` เพื่อรวม `vendor/jszip-3.10.1.min.js` เข้าเป็น `SI_VGM_Tool.html`
+แก้โค้ดที่ `src/app.html` แล้วรัน `python3 build.py` เพื่อรวมไลบรารีใน `vendor/` (JSZip, PDF.js, Tesseract OCR + ภาษาอังกฤษ) เข้าเป็น `SI_VGM_Tool.html` ไฟล์เดียว (~6.6 MB) — ตัวอ่าน PDF / OCR ถูกเก็บแบบบีบอัดและแตกออกเฉพาะตอนวาง PDF
 
 ## ทำ Template เปล่าจากไฟล์ที่กรอกแล้ว
 ```

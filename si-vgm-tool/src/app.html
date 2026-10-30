@@ -108,14 +108,17 @@ table.xl{border-collapse:collapse;table-layout:fixed;font-family:Calibri,Arial,s
   <h2><span class="n">1</span>วางไฟล์</h2>
   <div class="drop" id="drop" tabindex="0">
     <b>ลากไฟล์มาวางที่นี่ หรือคลิกเพื่อเลือก</b>
-    <span class="muted">Booking Request · ไฟล์ข้อมูลตู้ที่ทีมส่งกลับ · Template (ถ้าเปลี่ยนปลายทาง) — วางพร้อมกันหลายไฟล์ได้</span>
-    <input type="file" id="fileInput" accept=".xlsx" multiple hidden>
+    <span class="muted">Booking Request · PDF ใบยืนยัน Shinki · C Invoice PDF · ไฟล์ข้อมูลตู้ที่ทีมส่งกลับ · Template (ถ้าเปลี่ยนปลายทาง) — วางไฟล์แนบจากเมลทั้งหมดพร้อมกันได้</span>
+    <input type="file" id="fileInput" accept=".xlsx,.pdf" multiple hidden>
   </div>
   <div class="chips">
     <span class="chip" id="chipBooking">Booking: ยังไม่มี</span>
     <span class="chip" id="chipTeam">ข้อมูลตู้: ยังไม่มี</span>
     <span class="chip" id="chipTemplate">Template: ยังไม่มี</span>
+    <span class="chip" id="chipShinki">Shinki PDF: ยังไม่มี</span>
+    <span class="chip" id="chipInvoice">C Invoice PDF: ยังไม่มี</span>
   </div>
+  <p class="muted hidden" id="skipNote" style="margin:6px 0 0"></p>
   <p class="muted" style="margin:6px 0 0"><span id="tplMemo"></span> <a href="#" id="useBuiltin" class="hidden">กลับไปใช้ Template ในตัว</a></p>
 </section>
 
@@ -197,6 +200,7 @@ table.xl{border-collapse:collapse;table-layout:fixed;font-family:Calibri,Arial,s
 </aside>
 </div>
 
+<!--PDFLIBS-->
 <script>/*JSZIP*/</script>
 <script>
 "use strict";
@@ -209,7 +213,6 @@ const SI = { booking:"J2", vessel:"A28", polA:"D25", polB:"D28", pod:"A31", del:
   ctrSummary:"D38", pcs:"D39", kg:"J39", cbm:"K39", desc:"E40", invoice:"E41", total:"C58",
   consignee:["A9","A10","A11","A12"], notify:["A17","A18","A19","A20"], agent:["G24","G25","G26","G27"] };
 const ATTACH_FIRST = 6, VGM_FIRST = 12, MAX_CTR = 15; // VGM table rows 12-26 link to ATTACH rows 6-20
-const DEFAULT_TARE = { "40HQ":3700, "40GP":3700, "20GP":2200 };
 const PORT_NAMES = { THLCH:"LAEM CHABANG, THAILAND", THBKK:"BANGKOK, THAILAND", THLKR:"LAT KRABANG, THAILAND" };
 const AU_STATES = { ADELAIDE:"SA", SYDNEY:"NSW", MELBOURNE:"VIC", BRISBANE:"QLD", FREMANTLE:"WA", PERTH:"WA", DARWIN:"NT", HOBART:"TAS", TOWNSVILLE:"QLD" };
 const REQ_SHEET = "CONTAINER INFO";
@@ -319,7 +322,7 @@ function dateText(v){
   if (typeof v === "number" && v > 20000 && v < 80000) { const d = serialToDate(v); return `${String(d.getUTCDate()).padStart(2,"0")}-${MON(d.getUTCMonth())}-${d.getUTCFullYear()}`; }
   return String(v).trim();
 }
-function normType(t){ t = t.toUpperCase().trim(); return t.replace(/HC$/,"HQ").replace(/DC$|DV$/,"GP"); }
+function normType(t){ t = t.toUpperCase().trim(); return t.replace(/HDC$|HC$/,"HQ").replace(/DC$|DV$/,"GP"); }
 function serialToDate(n){ return new Date(Date.UTC(1899,11,30) + Math.round(n*86400000)); }
 function dateToSerial(iso){ const [y,m,d]=iso.split("-").map(Number); return (Date.UTC(y,m-1,d) - Date.UTC(1899,11,30))/86400000; }
 function textToIso(s){ // "03-Nov-2026" -> "2026-11-03"
@@ -336,6 +339,8 @@ async function openXlsx(buf){
   return { zip, sheets, sst, cells: async s => readCells(parseXml(await zip.file(s.path).async("string")), sst) };
 }
 async function detect(file){
+  if (/\.pdf$/i.test(file.name)) return { file, ...(await readPdf(file)) };
+  if (!/\.xlsx$/i.test(file.name)) return { kind:"skip", file };
   const buf = await file.arrayBuffer(), x = await openXlsx(buf);
   const names = x.sheets.map(s => norm(s.name));
   if (names.includes(REQ_SHEET)) return { kind:"team", file, data: parseTeam(await x.cells(x.sheets[names.indexOf(REQ_SHEET)])) };
@@ -344,6 +349,136 @@ async function detect(file){
   const b = parseBooking(cells, x.sheets[0].name);
   if (b.booking || b.lines.length) return { kind:"booking", file, data: b };
   throw new Error(`ไม่รู้จักไฟล์ ${file.name} (ไม่ใช่ Booking Request, Template SI/VGM หรือไฟล์ข้อมูลตู้)`);
+}
+
+/* ---------- PDF cross-check: Shinki booking confirmation + Commercial (C) Invoice ---------- */
+// PDF.js and Tesseract are embedded by build.py (gzip + base64) and only unpacked when a PDF is dropped
+let pdfDocs = { shinki:null, invoice:null }, pdfLibs = null, ocrWorker = null;
+async function libUrl(id, type){
+  const el = document.getElementById(id); if (!el) throw new Error("ไฟล์นี้ไม่มีตัวอ่าน PDF ในตัว (ใช้ไฟล์ที่ build แล้ว)");
+  let blob = new Blob([unb64(el.textContent.trim())]);
+  if (el.dataset.gz) blob = await new Response(blob.stream().pipeThrough(new DecompressionStream("gzip"))).blob();
+  return URL.createObjectURL(new Blob([blob], { type }));
+}
+const addScript = src => new Promise((res,rej) => { const s = document.createElement("script"); s.src = src; s.onload = res; s.onerror = () => rej(new Error("โหลดตัวอ่าน PDF ไม่ได้")); document.head.appendChild(s); });
+function loadPdfLibs(){
+  return pdfLibs ||= (async () => {
+    await addScript(await libUrl("lib-pdfjs", "text/javascript"));
+    pdfjsLib.GlobalWorkerOptions.workerSrc = await libUrl("lib-pdfjs-worker", "text/javascript");
+  })().catch(e => { pdfLibs = null; throw e; });
+}
+function getOcr(){
+  return ocrWorker ||= (async () => {
+    await addScript(await libUrl("lib-tess", "text/javascript"));
+    const lang = await libUrl("lib-eng", "application/octet-stream"), core = await libUrl("lib-tess-core", "text/javascript"), wk = await libUrl("lib-tess-worker", "text/javascript");
+    // the OCR worker fetches "<langPath>/eng.traineddata.gz" — answer it from the embedded copy, nothing goes online
+    const wrapper = URL.createObjectURL(new Blob([`const f=self.fetch.bind(self);self.fetch=(u,o)=>f(/traineddata/.test(String(u))?${JSON.stringify(lang)}:u,o);importScripts(${JSON.stringify(wk)});`], { type:"text/javascript" }));
+    return Tesseract.createWorker("eng", 1, { workerPath:wrapper, workerBlobURL:false, corePath:core+"#.js", langPath:"embedded", cacheMethod:"none", gzip:true });
+  })().catch(e => { ocrWorker = null; throw e; });
+}
+async function readPdf(file){
+  await loadPdfLibs();
+  const doc = await pdfjsLib.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise;
+  const pages = [];
+  for (let p=1; p<=doc.numPages; p++) {
+    const tc = await (await doc.getPage(p)).getTextContent();
+    pages.push(tc.items.filter(i => i.str.trim()).map(i => ({ x:i.transform[4], y:i.transform[5], s:i.str.trim() })));
+  }
+  const all = norm(pages.flat().map(i => i.s).join(" "));
+  if (all.includes("PACKING LIST")) return { kind:"skip" };
+  if (all.includes("COMMERCIAL INVOIC")) return { kind:"invoice", data: parseInvoice(pages) };
+  if (all.replace(/\s/g,"").length < 30) { // Shinki draws its text as outlines, so read it with OCR
+    $("chipShinki").textContent = "Shinki PDF: กำลังอ่าน (OCR)…"; $("chipShinki").className = "chip wait";
+    const pg = await doc.getPage(1), vp = pg.getViewport({ scale:3 });
+    const cv = document.createElement("canvas"); cv.width = vp.width; cv.height = vp.height;
+    await pg.render({ canvasContext: cv.getContext("2d"), viewport: vp, intent:"print" }).promise; // "print" skips requestAnimationFrame, so it also runs in a background tab
+    const text = (await (await getOcr()).recognize(cv)).data.text;
+    if (/SHIPMENT NO|BOOKING NO/i.test(text)) return { kind:"shinki", data: parseShinki(text) };
+  }
+  throw new Error(`ไม่รู้จัก PDF ${file.name} (ไม่ใช่ใบยืนยัน Booking ของ Shinki หรือ C Invoice)`);
+}
+function resetPdfs(){ // PDFs belong to one booking
+  pdfDocs = { shinki:null, invoice:null };
+  $("chipShinki").textContent = "Shinki PDF: ยังไม่มี"; $("chipInvoice").textContent = "C Invoice PDF: ยังไม่มี";
+  $("chipShinki").className = $("chipInvoice").className = "chip";
+}
+function parseShinki(text){
+  const t = text.toUpperCase(), D = "(\\d{2})\\/(\\d{2})\\/(\\d{4})";
+  const g = re => { const m = re.exec(t); return m ? m[1].trim() : ""; };
+  const date = label => { const m = new RegExp(label + "\\s*:?\\s*" + D).exec(t); return m ? `${m[3]}-${m[2]}-${m[1]}` : ""; };
+  const vol = /VOLUME\s*:?\s*(\d+)\s*[X×]\s*(\d{2})\s*'?\s*([A-Z]{2,3})/.exec(t);
+  const close = new RegExp("CLOSING DATE[^0-9]*" + D + "[^0-9]*(\\d{2})[.:](\\d{2})").exec(t);
+  return {
+    shipmentNo: g(/SHIPMENT NO\.?\s*:?\s*(\S+)/), booking: g(/BOOKING NO\.?\s*:?\s*([A-Z0-9]+)/),
+    qty: vol ? +vol[1] : 0, type: vol ? normType(vol[2] + vol[3]) : "",
+    etd: date("ETD"), eta: date("ETA"), siCut: date("SI CUT ?OFF"), vgmCut: date("VGM CUT ?OFF"),
+    pol: g(/PORT OF LOADING\s*:?\s*(.+)/), pod: g(/PORT OF DI?E?SCHARGE\s*:?\s*(.+)/), del: g(/PORT OF DELIVERY\s*:?\s*(.+)/),
+    vessel: g(/FEEDER\s*&?\s*VOY\.?\s*:?\s*(.+)/), carrier: g(/CARRIER\s*:?\s*(.+)/),
+    closing: close ? `${close[3]}-${close[2]}-${close[1]} ${close[4]}:${close[5]}` : "",
+  };
+}
+function parseInvoice(pages){
+  // a value is the nearest text to the right of its label, on the same line
+  const right = (items, re) => { const l = items.find(i => re.test(i.s)); if (!l) return [];
+    return items.filter(i => i !== l && Math.abs(i.y - l.y) <= 3 && i.x > l.x).sort((a,b) => a.x - b.x).map(i => i.s); };
+  const p1 = pages[0], last = pages[pages.length-1], one = re => right(p1, re)[0] || "";
+  const total = right(last, /^TOTAL$/i).find(s => /^[\d,]+$/.test(s));
+  const ctrs = {};
+  for (const i of last) if (/^\d{2}[A-Z]{2,3}$/.test(i.s)) { const r = right(last, new RegExp("^" + i.s + "$")); if (r[0] === "x") ctrs[normType(i.s)] = (ctrs[normType(i.s)]||0) + num(r[1]); }
+  return {
+    invoice: one(/^COMMERCIAL INVOIC/i), line: one(/^SHIPPING LINE/i), vessel: one(/^VESSEL/i), voyage: one(/^V ?OYAGE/i),
+    dest: one(/^DESTINATION/i), toPort: one(/^TO PORT/i), etd: textToIso(one(/^SAILING ON/i)), eta: textToIso(one(/^ETA/i)),
+    pcs: total ? num(total) : 0, ctrs,
+  };
+}
+// compare helpers: OCR mixes up S/5/8/B, O/0/D, I/1/L, Z/2 in text fields
+const letters = s => norm(s).replace(/[^A-Z0-9]/g, "");
+const ocrFold = s => letters(s).replace(/[S58B]/g,"8").replace(/[O0D]/g,"0").replace(/[I1L]/g,"1").replace(/[Z2]/g,"2");
+const cityOf = s => letters(String(s).split(",")[0]).replace(/AUSTRALIA$/, "");
+function pdfChecks(E, W, OK){
+  const sh = pdfDocs.shinki, iv = pdfDocs.invoice;
+  if (!sh || !iv) W(`ยังไม่ได้ตรวจกับ ${[!sh && "PDF ใบยืนยัน Shinki", !iv && "C Invoice PDF"].filter(Boolean).join(" และ ")} — วางไฟล์ในข้อ 1`);
+  const vessel = $("f_vessel").value, pod = $("f_pod").value, types = [...new Set(ctrs.map(c => c.type))];
+  const check = (doc, name, rows) => {
+    const ok = [];
+    for (const [label, mine, theirs, same] of rows) {
+      if (!theirs) { W(`${name}: อ่าน ${label} ไม่ออก — ตรวจด้วยตา`); continue; }
+      if (same) ok.push(label); else E(`${name}: ${label} ${theirs} ≠ ที่จะใส่ใน SI/Booking ${mine}`);
+    }
+    if (ok.length) OK(`${name} ตรงกัน: ${ok.join(", ")}`);
+  };
+  if (sh) {
+    const cy = booking.cyCut.split(" "), cyIso = textToIso(cy[0]) + " " + (cy[1] || "");
+    check(sh, `Shinki ${sh.shipmentNo || sh.file}`, [
+      ["Booking No.", $("f_booking").value, sh.booking, letters(sh.booking) === letters($("f_booking").value)],
+      ["จำนวนตู้", `${ctrs.length}x${types.join("/")}`, sh.qty && `${sh.qty}x${sh.type}`, sh.qty === ctrs.length && types.length === 1 && types[0] === sh.type],
+      ["ETD", booking.etd, isoToText(sh.etd), sh.etd === textToIso(booking.etd)],
+      ["ETA", booking.eta, isoToText(sh.eta), sh.eta === textToIso(booking.eta)],
+      ["Port of Loading", $("f_pol").value, sh.pol, ocrFold(sh.pol) === ocrFold($("f_pol").value)],
+      ["Port of Discharge", pod, sh.pod, ocrFold(cityOf(sh.pod)) === ocrFold(cityOf(pod))],
+      ["Place of Delivery", $("f_del").value, sh.del, ocrFold(cityOf(sh.del)) === ocrFold(cityOf($("f_del").value))],
+      ["เรือ / Voyage", vessel, sh.vessel, ocrFold(sh.vessel) === ocrFold(vessel)],
+      ["Carrier", booking.line, sh.carrier, !!booking.line && ocrFold(sh.carrier).includes(ocrFold(booking.line))], // "YML: YANG MING CONTAINER LINE"
+      ["Closing / CY Cut", booking.cyCut, sh.closing && `${isoToText(sh.closing.split(" ")[0])} ${sh.closing.split(" ")[1]}`, sh.closing === cyIso.trim()],
+    ]);
+    if (sh.siCut || sh.vgmCut) OK(`Shinki: SI cut off ${isoToText(sh.siCut) || "?"} · VGM cut off ${isoToText(sh.vgmCut) || "?"}`);
+    ctrs.forEach((c,i) => { if (c.date && sh.vgmCut && c.date > sh.vgmCut) W(`ตู้ #${i+1}: วันชั่ง ${isoToText(c.date)} เลย VGM cut off (${isoToText(sh.vgmCut)})`); });
+  }
+  if (iv) {
+    const ivCtrs = Object.entries(iv.ctrs).map(([k,q]) => `${q}x${k}`).join(" + ");
+    check(iv, `C Invoice ${iv.invoice || iv.file}`, [
+      ["Invoice No.", $("f_invoice").value, iv.invoice, letters(iv.invoice) === letters($("f_invoice").value)],
+      ["เรือ / Voyage", vessel, iv.vessel && `${iv.vessel} V.${iv.voyage}`, letters(`${iv.vessel} V.${iv.voyage}`) === letters(vessel)],
+      ["Shipping Line", booking.line, iv.line, letters(iv.line) === letters(booking.line)],
+      ["To Port", pod, iv.toPort, cityOf(iv.toPort) === cityOf(pod)],
+      // usually just "FREMANTLE"; when it carries the state ("ADELAIDE,SA") the state must match too
+      ["Destination", pod, iv.dest, iv.dest.includes(",") ? norm(iv.dest).replace(/\s*,\s*/g, ",") + ",AUSTRALIA" === norm(pod).replace(/\s*,\s*/g, ",") : cityOf(iv.dest) === cityOf(pod)],
+      ["Sailing / ETD", booking.etd, isoToText(iv.etd), iv.etd === textToIso(booking.etd)],
+      ["ETA", booking.eta, isoToText(iv.eta), iv.eta === textToIso(booking.eta)],
+      ["จำนวนตู้", summary(), ivCtrs, ivCtrs === summary()],
+      ["Pieces รวม", fmtInt(sums().pcs), iv.pcs && fmtInt(iv.pcs), Math.round(iv.pcs) === Math.round(sums().pcs)],
+    ]);
+  }
 }
 
 /* ---------- Template reading (party defaults) ---------- */
@@ -474,14 +609,24 @@ fileInput.addEventListener("change", () => { handleFiles([...fileInput.files]); 
 
 async function handleFiles(files){
   const found = [];
-  for (const f of files) { try { found.push(await detect(f)); } catch(e) { alert(e.message); } }
-  const order = { template:0, booking:1, team:2 };
+  for (const f of files) { try { found.push(await detect(f)); } catch(e) { alert(e.message);
+    if ($("chipShinki").classList.contains("wait")) { $("chipShinki").textContent = "Shinki PDF: อ่านไม่ได้"; $("chipShinki").className = "chip"; } } }
+  const order = { template:0, booking:1, team:2, shinki:3, invoice:3, skip:4 };
   found.sort((a,b) => order[a.kind]-order[b.kind]);
+  const skipped = found.filter(x => x.kind === "skip").map(x => x.file.name);
+  $("skipNote").textContent = skipped.length ? `ไม่ได้ใช้: ${skipped.join(", ")}` : "";
+  $("skipNote").classList.toggle("hidden", !skipped.length);
   for (const x of found) {
     try {
+      if (x.kind === "shinki" || x.kind === "invoice") {
+        pdfDocs[x.kind] = { ...x.data, file: x.file.name };
+        const chip = $(x.kind === "shinki" ? "chipShinki" : "chipInvoice");
+        chip.textContent = (x.kind === "shinki" ? "Shinki PDF: " : "C Invoice PDF: ") + x.file.name; chip.className = "chip done";
+        if (booking) refresh();
+      }
       if (x.kind === "template") { await loadTemplate(x.buf, x.file.name);
         try { localStorage.setItem("sivgm_tpl", JSON.stringify({ name:x.file.name, data: b64(x.buf) })); } catch(_){} }
-      else if (x.kind === "booking") { booking = x.data; $("chipBooking").textContent = "Booking: " + x.file.name; $("chipBooking").className = "chip done"; fillFromBooking(); }
+      else if (x.kind === "booking") { booking = x.data; resetPdfs(); $("chipBooking").textContent = "Booking: " + x.file.name; $("chipBooking").className = "chip done"; fillFromBooking(); }
       else if (x.kind === "team") {
         if (!booking) { alert("วาง Booking Request ก่อน แล้วค่อยวางไฟล์ข้อมูลตู้"); continue; }
         applyTeam(x.data, x.file.name);
@@ -525,7 +670,7 @@ function fillFromBooking(){
   renderCtrs();
 }
 function newCtr(o){ const type = o.type || "40HQ";
-  return { no:"", seal:"", type, pcs:"", kg:"", cbm:"", tare: DEFAULT_TARE[type] ?? 3700, tareSet:false, date:"", fromTeam:{}, ...o }; }
+  return { no:"", seal:"", type, pcs:"", kg:"", cbm:"", tare:"", tareSet:false, date:"", fromTeam:{}, ...o }; }
 function blankCtr(){ const p = ctrs[ctrs.length-1] || {}; return newCtr({ type:p.type, date:p.date||"" }); }
 function setOutName(){
   const city = $("f_pod").value.split(",")[0].trim() || "DEST";
@@ -580,7 +725,7 @@ const fmtInt = n => Math.round(n).toLocaleString("en-US");
 
 function refresh(){
   if (booking) {
-    ctrs.forEach((c,i)=>{ const td=document.querySelector(`td[data-vgm="${i}"]`); if (td) td.textContent = (num(c.kg)+num(c.tare)).toLocaleString("en-US"); });
+    ctrs.forEach((c,i)=>{ const td=document.querySelector(`td[data-vgm="${i}"]`); if (td) td.textContent = c.tare === "" ? "" : (num(c.kg)+num(c.tare)).toLocaleString("en-US"); });
     const s = sums();
     $("ctrFoot").innerHTML = `<td></td><td colspan="4" class="muted">รวม · Booking: ${fmtInt(booking.total.pcs)} pcs · ${fmtInt(booking.total.kg)} kg · ${booking.total.cbm.toFixed(3)} CBM</td>`
       + `<td class="num">${fmtInt(s.pcs)}</td><td class="num">${fmtInt(s.kg)}</td><td class="num">${s.cbm.toFixed(3)}</td><td colspan="2"></td>`;
@@ -624,8 +769,7 @@ function validate(){
     else if (isoCheckDigit(no) !== +no[10]) { W(`ตู้ #${n}: เลขตู้ ${no} check digit ไม่ถูก (ควรลงท้ายด้วย ${isoCheckDigit(no)}) — ตรวจกับทีมตู้`); bad(i,"no"); }
     if (no) { if (seen[no]) { E(`เลขตู้ ${no} ซ้ำ`); bad(i,"no"); } seen[no]=1; }
     if (!c.seal.trim()) E(`ตู้ #${n}: รอเลขซีลจากทีมตู้`);
-    if (!num(c.tare)) { E(`ตู้ #${n}: ยังไม่มี Tare`); bad(i,"tare"); }
-    else if (!c.tareSet) W(`ตู้ #${n}: Tare ยังเป็นค่าเริ่มต้น ${fmtInt(num(c.tare))} kg — รอค่าจริงจากทีมตู้`);
+    if (!num(c.tare)) E(`ตู้ #${n}: รอ Tare จากทีมตู้`);
     if (!num(c.pcs)) { E(`ตู้ #${n}: ยังไม่ใส่จำนวน Pieces`); bad(i,"pcs"); }
     if (!num(c.kg)) { E(`ตู้ #${n}: ยังไม่ใส่น้ำหนักสินค้า`); bad(i,"kg"); }
     if (!num(c.cbm)) { E(`ตู้ #${n}: ยังไม่ใส่ CBM`); bad(i,"cbm"); }
@@ -637,8 +781,9 @@ function validate(){
   if (t.kg && Math.abs(s.kg - t.kg) > 0.5) W(`น้ำหนักรวม ${fmtInt(s.kg)} kg ≠ Booking ${fmtInt(t.kg)} kg`);
   if (t.cbm && Math.abs(s.cbm - t.cbm) > 0.0005) W(`CBM รวม ${s.cbm.toFixed(3)} ≠ Booking ${t.cbm.toFixed(3)}`);
   for (const [id,label] of [["p_consignee","Consignee"],["p_notify","Notify"],["p_agent","Agent"]]) if ($(id).value.split("\n").length > 4) W(`${label}: เกิน 4 บรรทัด บรรทัดที่เกินจะถูกตัด`);
+  pdfChecks(E, W, t => out.push(["ok",t]));
   const errs = out.filter(m=>m[0]==="err").length;
-  if (!out.length) out.push(["ok","ข้อมูลครบ พร้อมดาวน์โหลด"]);
+  if (!out.some(m => m[0] !== "ok")) out.unshift(["ok","ข้อมูลครบ พร้อมดาวน์โหลด"]);
   $("msgs").innerHTML = out.map(([k,t]) => `<li class="${k}">${k==="err"?"✖":k==="warn"?"⚠":"✔"} ${esc(t)}</li>`).join("");
   $("btnBuild").textContent = errs ? `ดาวน์โหลด (ยังขาด ${errs} จุด)` : "ดาวน์โหลด SI / VGM";
   return out;
@@ -772,11 +917,11 @@ function fill(si, vgm, att){
     att.set("B"+ar, c ? cleanNo(c.no) : ""); att.set("C"+ar, c ? c.seal.trim() : "");
     att.set("D"+ar, c ? num(c.pcs) : ""); att.set("F"+ar, c ? num(c.kg) : ""); att.set("H"+ar, c ? num(c.cbm) : "");
     if (!c || att.formula("J"+ar) === null || c.type !== "40HQ") att.set("J"+ar, c ? c.type : "");
-    vgm.set("B"+vr, c && c.date ? dateToSerial(c.date) : ""); vgm.set("C"+vr, c ? 2 : ""); vgm.set("G"+vr, c ? num(c.tare) : "");
+    vgm.set("B"+vr, c && c.date ? dateToSerial(c.date) : ""); vgm.set("C"+vr, c ? 2 : ""); vgm.set("G"+vr, c && c.tare !== "" ? num(c.tare) : ""); // unknown tare stays blank
     if (c) { // mark what the container team still owes us
       if (!c.no) { att.missing.add("B"+ar); att.touched.add("B"+ar); vgm.missing.add("A"+vr); vgm.touched.add("A"+vr); }
       if (!c.seal) { att.missing.add("C"+ar); att.touched.add("C"+ar); }
-      if (!c.tareSet) vgm.missing.add("G"+vr);
+      if (c.tare === "") { vgm.missing.add("G"+vr); vgm.touched.add("G"+vr); }
       vgm.touched.add("A"+vr); vgm.touched.add("D"+vr); vgm.touched.add("H"+vr);
     }
   }
