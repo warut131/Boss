@@ -30,7 +30,7 @@ label อยู่คอลัมน์ C ค่าอยู่ I (บางต�
 `SHIPPING INSTRUCTION No:` 00238364 · `SHIP CODE:` A8011000005-000709
 ตารางตู้: หัวแถว `STUFFING DATE | CONTAINER TYPE | CONTAINER No | TIRE Q'ty | Container Capa | M3 | WEIGHT | AMOUNT | Currency`
 แถวข้อมูลจนถึง `SUB TOTAL` / `TOTAL` (ตัวอย่าง: 03-Nov-2026, `40HC-1143928`, 1, 527 เส้น, 66.789 M3, 8,295 kg)
-`CONTAINER No` ในไฟล์นี้ = จำนวนตู้ (ไม่ใช่เลขตู้) · 40HC → เขียนใน SI เป็น 40HQ
+`CONTAINER No` = ลำดับตู้ 1,2,3 (1 แถว = 1 ตู้ ไม่ใช่จำนวนตู้ และไม่ใช่เลขตู้) · 40HC → เขียนใน SI เป็น 40HQ
 
 **Template SI/VGM** (`SHINKI_SRAU_VGM_SI_BKG._A488017325_DTAU-SYDNEY_1.xlsx`) 3 ชีต:
 sheet1 = `SI DATA`, sheet2 = `VGM ` (มีช่องว่างท้ายชื่อ!), sheet3 = `ATTACH SHEET (WHEN REQUIRED)`
@@ -40,7 +40,7 @@ sheet1 = `SI DATA`, sheet2 = `VGM ` (มีช่องว่างท้าย�
 | SI DATA | J2 | Booking No (ตัวเลข) |
 | | A28 | `KOTA LUMAYAN V.194S` |
 | | D25 / D28 | `LAEM CHABANG, THAILAND ` (D25 มีช่องว่างท้าย) / `LAEM CHABANG, THAILAND` |
-| | A31 / D31 | `ADELAIDE,SA,AUSTRALIA` (รูปแบบ CITY,STATE,AUSTRALIA) |
+| | A31 / D31 | `ADELAIDE, AUSTRALIA` (รูปแบบ "CITY, AUSTRALIA" ตามไฟล์จริงที่ทีมกรอก — ไม่มีชื่อรัฐ) |
 | | D38 | `1x40HQ` |
 | | D39 / J39 / K39 | `527 PIECE(S)` / `8,295 KGS ` (ช่องว่างท้าย) / `66.789  CBM` (2 ช่องว่าง) |
 | | E40 | `FALKEN/SUMITOMO TYRES ` |

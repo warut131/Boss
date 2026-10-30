@@ -211,7 +211,7 @@ const SI = { booking:"J2", vessel:"A28", polA:"D25", polB:"D28", pod:"A31", del:
 const ATTACH_FIRST = 6, VGM_FIRST = 12, MAX_CTR = 15; // VGM table rows 12-26 link to ATTACH rows 6-20
 const DEFAULT_TARE = { "40HQ":3700, "40GP":3700, "20GP":2200 };
 const PORT_NAMES = { THLCH:"LAEM CHABANG, THAILAND", THBKK:"BANGKOK, THAILAND", THLKR:"LAT KRABANG, THAILAND" };
-const AU_STATES = { ADELAIDE:"SA", SYDNEY:"NSW", MELBOURNE:"VIC", BRISBANE:"QLD", FREMANTLE:"WA", PERTH:"WA", DARWIN:"NT", HOBART:"TAS", TOWNSVILLE:"QLD" };
+const AU_PORTS = ["ADELAIDE","SYDNEY","MELBOURNE","BRISBANE","FREMANTLE","PERTH","DARWIN","HOBART","TOWNSVILLE"];
 const REQ_SHEET = "CONTAINER INFO";
 const NOFOLDERS = { createFolders: false }; // don't add folder entries the source file never had
 
@@ -306,6 +306,10 @@ function parseBooking(cells, sheetName){
         qty: Math.max(1, parseInt(get(r,col.qty))||1), pcs:+get(r,col.pcs)||0, kg:+get(r,col.kg)||0, cbm:+get(r,col.cbm)||0 });
     }
   }
+  // "CONTAINER No" is normally a running index (1,2,3 — one row per container), not a count.
+  // Only read it as a count when the rows add up to the TOTAL and don't already match it one-per-row.
+  const asCount = b.total && b.lines.length !== b.total.qty && b.lines.reduce((s,l)=>s+l.qty,0) === b.total.qty;
+  if (!asCount) b.lines.forEach(l => l.qty = 1);
   if (!b.total) b.total = b.lines.reduce((t,l)=>({qty:t.qty+l.qty,pcs:t.pcs+l.pcs,kg:t.kg+l.kg,cbm:t.cbm+l.cbm}),{qty:0,pcs:0,kg:0,cbm:0});
   return b;
 }
@@ -501,7 +505,8 @@ function unb64(s){ const b=atob(s), u=new Uint8Array(b.length); for (let i=0;i<b
 function podText(arrival){
   const city = String(arrival).split(",")[0].trim().toUpperCase();
   const country = (String(arrival).split(",")[1]||"").trim().toUpperCase();
-  if (AU_STATES[city] && (!country || country==="AUSTRALIA")) return `${city},${AU_STATES[city]},AUSTRALIA`;
+  // as typed in the real SI: "ADELAIDE, AUSTRALIA" (no state)
+  if (AU_PORTS.includes(city) && (!country || country==="AUSTRALIA")) return `${city}, AUSTRALIA`;
   return String(arrival).toUpperCase();
 }
 function fillFromBooking(){
