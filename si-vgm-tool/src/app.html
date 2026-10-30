@@ -1,0 +1,590 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SI / VGM Builder</title>
+<style>
+:root{
+  --bg:#f5f6f8; --card:#fff; --ink:#1d2330; --muted:#667085; --line:#d9dde5;
+  --accent:#1f5fbf; --accent-ink:#fff; --ok:#1b7f3b; --warn:#a15c00; --err:#b42318;
+  --ok-bg:#e8f5ec; --warn-bg:#fff4e0; --err-bg:#fdecea; --input:#fff;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#14171c; --card:#1c2027; --ink:#e7eaf0; --muted:#98a2b3; --line:#323844;
+  --accent:#5b8ff0; --accent-ink:#0b1220; --ok:#5cc983; --warn:#f0b452; --err:#f27b6f;
+  --ok-bg:#16301f; --warn-bg:#33270f; --err-bg:#3a1a17; --input:#232832;
+}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 "Segoe UI","Tahoma","Noto Sans Thai",sans-serif}
+header{padding:18px 16px 8px;max-width:1150px;margin:0 auto}
+header h1{margin:0;font-size:20px}
+header p{margin:4px 0 0;color:var(--muted)}
+main{max-width:1150px;margin:0 auto;padding:8px 16px 60px}
+section{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:12px 0}
+section h2{margin:0 0 10px;font-size:15px}
+section h2 .n{display:inline-block;width:22px;height:22px;border-radius:50%;background:var(--accent);color:var(--accent-ink);text-align:center;line-height:22px;font-size:12px;margin-right:6px}
+.drops{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:700px){.drops{grid-template-columns:1fr}}
+.drop{border:2px dashed var(--line);border-radius:10px;padding:16px;text-align:center;cursor:pointer;min-height:96px;display:flex;flex-direction:column;justify-content:center;gap:4px}
+.drop.over{border-color:var(--accent)}
+.drop.done{border-style:solid;border-color:var(--ok);background:var(--ok-bg)}
+.drop b{font-size:14px}
+.drop small{color:var(--muted);word-break:break-all}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px 14px}
+label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted)}
+input,textarea,select{font:inherit;color:var(--ink);background:var(--input);border:1px solid var(--line);border-radius:6px;padding:6px 8px;width:100%}
+textarea{font-family:Consolas,"Courier New",monospace;font-size:12.5px;resize:vertical}
+input:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:-1px}
+input.bad{border-color:var(--err);background:var(--err-bg)}
+.parties{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+@media (max-width:900px){.parties{grid-template-columns:1fr}}
+.tablewrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:820px}
+th,td{border-bottom:1px solid var(--line);padding:5px 4px;text-align:left;font-size:13px}
+th{color:var(--muted);font-weight:600;font-size:12px}
+td input{padding:4px 6px}
+td.num input{text-align:right}
+tfoot td{font-weight:600}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+button{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:7px;padding:7px 14px;cursor:pointer}
+button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600;padding:10px 20px}
+button:disabled{opacity:.5;cursor:not-allowed}
+.msgs{list-style:none;margin:0 0 12px;padding:0;display:flex;flex-direction:column;gap:6px}
+.msgs li{padding:7px 10px;border-radius:6px;font-size:13px}
+.msgs .err{background:var(--err-bg);color:var(--err)}
+.msgs .warn{background:var(--warn-bg);color:var(--warn)}
+.msgs .ok{background:var(--ok-bg);color:var(--ok)}
+.muted{color:var(--muted);font-size:12px}
+.hidden{display:none}
+</style>
+</head>
+<body>
+<header>
+  <h1>SI / VGM Builder</h1>
+  <p>สร้างไฟล์ SI / VGM จาก Booking Request · ทำงานในเครื่องนี้ทั้งหมด ไม่ส่งข้อมูลออกอินเทอร์เน็ต</p>
+</header>
+<main>
+
+<section>
+  <h2><span class="n">1</span>เลือกไฟล์</h2>
+  <div class="drops">
+    <div class="drop" id="dropBooking" tabindex="0">
+      <b>Booking Request (.xlsx)</b>
+      <span class="muted">ลากไฟล์มาวาง หรือคลิกเพื่อเลือก</span>
+      <small id="nameBooking"></small>
+      <input type="file" id="fileBooking" accept=".xlsx" hidden>
+    </div>
+    <div class="drop" id="dropTemplate" tabindex="0">
+      <b>Template SI / VGM (.xlsx) ของปลายทางนี้</b>
+      <span class="muted">ลากไฟล์มาวาง หรือคลิกเพื่อเลือก</span>
+      <small id="nameTemplate"></small>
+      <input type="file" id="fileTemplate" accept=".xlsx" hidden>
+    </div>
+  </div>
+  <p class="muted" id="tplMemo"></p>
+</section>
+
+<div id="form" class="hidden">
+<section>
+  <h2><span class="n">2</span>ข้อมูล Shipment (ตรวจ / แก้ได้)</h2>
+  <div class="grid">
+    <label>Booking No. <input id="f_booking"></label>
+    <label>Invoice No. <input id="f_invoice"></label>
+    <label>Vessel / Voyage (SI ช่อง Ocean Vessel) <input id="f_vessel"></label>
+    <label>Port of Loading <input id="f_pol"></label>
+    <label>Port of Discharge <input id="f_pod"></label>
+    <label>Place of Delivery <input id="f_del"></label>
+    <label>Shipping Line <input id="f_line" readonly></label>
+    <label>CY Cut <input id="f_cycut" readonly></label>
+    <label>ETD / ETA <input id="f_etd" readonly></label>
+    <label>Commodity (จาก Booking) <input id="f_commodity" readonly></label>
+    <label>Description (SI) <input id="f_desc"></label>
+    <label>SI No. / Ship code <input id="f_sino" readonly></label>
+  </div>
+</section>
+
+<section>
+  <h2><span class="n">3</span>คู่ค้า (ค่าเริ่มต้นจาก Template — แก้ได้ บรรทัดละช่อง สูงสุด 4 บรรทัด)</h2>
+  <div class="parties">
+    <label>Consignee <textarea id="p_consignee" rows="4" wrap="off"></textarea></label>
+    <label>Notify Party <textarea id="p_notify" rows="4" wrap="off"></textarea></label>
+    <label>Delivery Agent <textarea id="p_agent" rows="4" wrap="off"></textarea></label>
+  </div>
+</section>
+
+<section>
+  <h2><span class="n">4</span>รายการตู้</h2>
+  <div class="row" style="margin-bottom:8px">
+    <span class="muted" id="ctrInfo"></span>
+    <span style="flex:1"></span>
+    <button id="addRow" type="button">+ เพิ่มตู้</button>
+    <button id="delRow" type="button">− ลบตู้สุดท้าย</button>
+  </div>
+  <div class="tablewrap">
+  <table>
+    <thead><tr>
+      <th>#</th><th>Container No.</th><th>Seal No.</th><th>Type</th>
+      <th>Pieces</th><th>Cargo kg</th><th>CBM</th><th>Tare kg</th><th>VGM kg</th><th>วันชั่ง</th>
+    </tr></thead>
+    <tbody id="ctrBody"></tbody>
+    <tfoot><tr id="ctrFoot"></tr></tfoot>
+  </table>
+  </div>
+</section>
+
+<section>
+  <h2><span class="n">5</span>ตรวจสอบ และดาวน์โหลด</h2>
+  <ul class="msgs" id="msgs"></ul>
+  <div class="row">
+    <label style="flex:1;min-width:260px">ชื่อไฟล์ <input id="f_outname"></label>
+    <button class="primary" id="btnBuild" type="button">ดาวน์โหลด SI / VGM</button>
+  </div>
+</section>
+</div>
+
+</main>
+
+<script>/*JSZIP*/</script>
+<script>
+"use strict";
+const NS = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
+const RNS = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
+const $ = id => document.getElementById(id);
+
+// Template layout (SHINKI SRAU SI/VGM form)
+const SI = { booking:"J2", vessel:"A28", polA:"D25", polB:"D28", pod:"A31", del:"D31",
+  ctrSummary:"D38", pcs:"D39", kg:"J39", cbm:"K39", desc:"E40", invoice:"E41", total:"C58",
+  consignee:["A9","A10","A11","A12"], notify:["A17","A18","A19","A20"], agent:["G24","G25","G26","G27"] };
+const ATTACH_FIRST = 6, VGM_FIRST = 12, MAX_CTR = 15; // VGM table rows 12-26 link to ATTACH rows 6-20
+const DEFAULT_TARE = { "40HQ":3700, "40GP":3700, "20GP":2200 };
+const PORT_NAMES = { THLCH:"LAEM CHABANG, THAILAND", THBKK:"BANGKOK, THAILAND", THLKR:"LAT KRABANG, THAILAND" };
+const AU_STATES = { ADELAIDE:"SA", SYDNEY:"NSW", MELBOURNE:"VIC", BRISBANE:"QLD", FREMANTLE:"WA", PERTH:"WA", DARWIN:"NT", HOBART:"TAS", TOWNSVILLE:"QLD" };
+
+let booking = null, templateBuf = null, templateName = "", ctrs = [];
+
+/* ---------- xlsx helpers ---------- */
+const parseXml = s => new DOMParser().parseFromString(s, "application/xml");
+const serXml = d => new XMLSerializer().serializeToString(d);
+function colNum(c){ let n=0; for(const ch of c) n=n*26+ch.charCodeAt(0)-64; return n; }
+function splitRef(r){ const m=/^([A-Z]+)(\d+)$/.exec(r); return [m[1], +m[2]]; }
+function colName(n){ let s=""; while(n>0){ const m=(n-1)%26; s=String.fromCharCode(65+m)+s; n=(n-m-1)/26; } return s; }
+
+async function sheetPaths(zip){
+  const wb = parseXml(await zip.file("xl/workbook.xml").async("string"));
+  const rels = parseXml(await zip.file("xl/_rels/workbook.xml.rels").async("string"));
+  const target = {};
+  for (const r of rels.getElementsByTagName("Relationship")) target[r.getAttribute("Id")] = r.getAttribute("Target");
+  const out = [];
+  for (const s of wb.getElementsByTagName("sheet")) {
+    let t = target[s.getAttributeNS(RNS,"id") || s.getAttribute("r:id")];
+    t = t.startsWith("/") ? t.slice(1) : "xl/" + t;
+    out.push({ name: s.getAttribute("name"), path: t });
+  }
+  return out;
+}
+async function sharedStrings(zip){
+  const f = zip.file("xl/sharedStrings.xml"); if (!f) return [];
+  const d = parseXml(await f.async("string"));
+  return [...d.getElementsByTagName("si")].map(si => [...si.getElementsByTagName("t")].map(t=>t.textContent).join(""));
+}
+function readCells(doc, sst){
+  const cells = {};
+  for (const c of doc.getElementsByTagName("c")) {
+    const t = c.getAttribute("t"), v = c.getElementsByTagName("v")[0];
+    let val = null;
+    if (t === "s" && v) val = sst[+v.textContent];
+    else if (t === "inlineStr") val = [...c.getElementsByTagName("t")].map(x=>x.textContent).join("");
+    else if (v) val = (t === "str" || t === "e") ? v.textContent : (t === "b" ? v.textContent==="1" : +v.textContent);
+    if (val !== null && val !== "") cells[c.getAttribute("r")] = val;
+  }
+  return cells;
+}
+
+/* ---------- Booking parser (by labels, not fixed cells) ---------- */
+async function parseBooking(buf){
+  const zip = await JSZip.loadAsync(buf);
+  const sheets = await sheetPaths(zip), sst = await sharedStrings(zip);
+  const cells = readCells(parseXml(await zip.file(sheets[0].path).async("string")), sst);
+  const rows = {};
+  for (const [ref,val] of Object.entries(cells)) { const [c,r]=splitRef(ref); (rows[r] ||= []).push({c:colNum(c), val}); }
+  for (const r in rows) rows[r].sort((a,b)=>a.c-b.c);
+  const norm = v => String(v).toUpperCase().replace(/\s+/g," ").trim();
+  const after = label => {
+    for (const r in rows) { const row = rows[r]; const i = row.findIndex(x => typeof x.val==="string" && norm(x.val)===label);
+      if (i>=0) return row.slice(i+1).map(x=>x.val); }
+    return [];
+  };
+  const one = l => { const a = after(l); return a.length ? String(a[0]).trim() : ""; };
+  const b = {
+    sheetName: sheets[0].name,
+    invoice: one("INV. NO:"), booking: one("BOOKING NO:"), customer: after("CUSTOMER:").join(" "),
+    finalDest: after("FINAL DESTINATION:").join(" "), trucker: one("TRUCKER/NVOCC:"),
+    pol: one("DEPARTURE PORT:"), pod: one("ARRIVAL PORT:"), vessel: one("VESSEL:"), voyage: one("VOYAGE:"),
+    cyCut: after("CY CUT:").map(dateText).join(" "), etd: dateText(after("ETD:")[0]||""), eta: dateText(after("ETA:")[0]||""),
+    line: one("SHIPPING LINE:"), commodity: one("COMMODITY:"), siNo: one("SHIPPING INSTRUCTION NO:"), shipCode: one("SHIP CODE:"),
+    lines: [], total: null,
+  };
+  // container lines: header row has "STUFFING DATE"; data until "SUB TOTAL"/"TOTAL"
+  const rowNums = Object.keys(rows).map(Number).sort((a,b)=>a-b);
+  const hdrRow = rowNums.find(r => rows[r].some(x => norm(x.val)==="STUFFING DATE"));
+  if (hdrRow) {
+    const col = {};
+    for (const x of rows[hdrRow]) {
+      const h = norm(x.val);
+      if (h==="STUFFING DATE") col.date=x.c; else if (h==="CONTAINER TYPE") col.type=x.c; else if (h==="CONTAINER NO") col.qty=x.c;
+      else if (h.includes("Q'TY")) col.pcs=x.c; else if (h==="M3") col.cbm=x.c; else if (h==="WEIGHT") col.kg=x.c;
+    }
+    const get = (r,c) => { const x = rows[r].find(y=>y.c===c); return x ? x.val : ""; };
+    for (const r of rowNums.filter(r=>r>hdrRow)) {
+      const first = norm(rows[r][0].val);
+      if (first==="SUB TOTAL") continue;
+      if (first==="TOTAL") { b.total = { qty:+get(r,col.qty)||0, pcs:+get(r,col.pcs)||0, kg:+get(r,col.kg)||0, cbm:+get(r,col.cbm)||0 }; break; }
+      if (!get(r,col.type)) continue;
+      b.lines.push({ date: dateText(get(r,col.date)), type: normType(String(get(r,col.type)).split("-")[0]),
+        qty: Math.max(1, parseInt(get(r,col.qty))||1), pcs:+get(r,col.pcs)||0, kg:+get(r,col.kg)||0, cbm:+get(r,col.cbm)||0 });
+    }
+  }
+  if (!b.total) b.total = b.lines.reduce((t,l)=>({qty:t.qty+l.qty,pcs:t.pcs+l.pcs,kg:t.kg+l.kg,cbm:t.cbm+l.cbm}),{qty:0,pcs:0,kg:0,cbm:0});
+  if (!b.booking && !b.lines.length) throw new Error("ไม่พบข้อมูล Booking ในไฟล์นี้ (หา BOOKING No: / STUFFING DATE ไม่เจอ)");
+  return b;
+}
+const MONTHS = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
+function dateText(v){
+  if (typeof v === "number" && v > 20000 && v < 80000) { const d = serialToDate(v); return `${String(d.getUTCDate()).padStart(2,"0")}-${MONTHS[d.getUTCMonth()][0]+MONTHS[d.getUTCMonth()].slice(1).toLowerCase()}-${d.getUTCFullYear()}`; }
+  return String(v).trim();
+}
+function normType(t){ t = t.toUpperCase().trim(); return t.replace(/HC$/,"HQ").replace(/DC$|DV$/,"GP"); }
+function serialToDate(n){ return new Date(Date.UTC(1899,11,30) + Math.round(n*86400000)); }
+function dateToSerial(iso){ const [y,m,d]=iso.split("-").map(Number); return (Date.UTC(y,m-1,d) - Date.UTC(1899,11,30))/86400000; }
+function textToIso(s){ // "03-Nov-2026" -> "2026-11-03"
+  const m = /^(\d{1,2})[-\s/]([A-Za-z]{3})[A-Za-z]*[-\s/](\d{4})/.exec(s||""); if (!m) return "";
+  const mi = MONTHS.indexOf(m[2].toUpperCase()); if (mi<0) return "";
+  return `${m[3]}-${String(mi+1).padStart(2,"0")}-${m[1].padStart(2,"0")}`;
+}
+
+/* ---------- Template reading (for party defaults) ---------- */
+async function readTemplate(buf){
+  const zip = await JSZip.loadAsync(buf);
+  const sheets = await sheetPaths(zip), sst = await sharedStrings(zip);
+  const find = n => sheets.find(s => s.name.trim().toUpperCase().startsWith(n));
+  const si = find("SI DATA"), vgm = find("VGM"), att = find("ATTACH");
+  if (!si || !vgm || !att) throw new Error("Template ต้องมีชีต SI DATA, VGM และ ATTACH SHEET");
+  const cells = readCells(parseXml(await zip.file(si.path).async("string")), sst);
+  const lines = refs => refs.map(r => cells[r] ? String(cells[r]) : "").join("\n").replace(/\n+$/,"");
+  return { consignee: lines(SI.consignee), notify: lines(SI.notify), agent: lines(SI.agent), desc: String(cells[SI.desc]||"").trim(),
+           pod: cells[SI.pod]||"", del: cells[SI.del]||"" };
+}
+
+/* ---------- UI ---------- */
+function setupDrop(dropId, inputId, onFile){
+  const drop = $(dropId), input = $(inputId);
+  drop.addEventListener("click", () => input.click());
+  drop.addEventListener("keydown", e => { if (e.key==="Enter"||e.key===" ") input.click(); });
+  drop.addEventListener("dragover", e => { e.preventDefault(); drop.classList.add("over"); });
+  drop.addEventListener("dragleave", () => drop.classList.remove("over"));
+  drop.addEventListener("drop", e => { e.preventDefault(); drop.classList.remove("over"); if (e.dataTransfer.files[0]) onFile(e.dataTransfer.files[0]); });
+  input.addEventListener("change", () => { if (input.files[0]) onFile(input.files[0]); input.value=""; });
+}
+setupDrop("dropBooking","fileBooking", async f => {
+  try { booking = await parseBooking(await f.arrayBuffer()); $("nameBooking").textContent = f.name; $("dropBooking").classList.add("done"); fillFromBooking(); }
+  catch(e){ alert("อ่าน Booking ไม่ได้: " + e.message); }
+});
+setupDrop("dropTemplate","fileTemplate", async f => {
+  try { await loadTemplate(await f.arrayBuffer(), f.name);
+        try { localStorage.setItem("sivgm_tpl", JSON.stringify({ name:f.name, data: b64(templateBuf) })); } catch(_){} }
+  catch(e){ alert("อ่าน Template ไม่ได้: " + e.message); }
+});
+async function loadTemplate(buf, name){
+  const t = await readTemplate(buf);
+  templateBuf = buf; templateName = name;
+  $("nameTemplate").textContent = name; $("dropTemplate").classList.add("done");
+  $("p_consignee").value = t.consignee; $("p_notify").value = t.notify; $("p_agent").value = t.agent;
+  if (!$("f_desc").value) $("f_desc").value = t.desc;
+  $("tplMemo").textContent = "Template จะถูกจำไว้ในเบราว์เซอร์นี้ ครั้งหน้าไม่ต้องเลือกใหม่ (เปลี่ยนได้โดยลากไฟล์ใหม่ทับ)";
+  showForm();
+}
+function b64(buf){ let s=""; const u=new Uint8Array(buf); for (let i=0;i<u.length;i+=0x8000) s+=String.fromCharCode.apply(null,u.subarray(i,i+0x8000)); return btoa(s); }
+function unb64(s){ const b=atob(s), u=new Uint8Array(b.length); for (let i=0;i<b.length;i++) u[i]=b.charCodeAt(i); return u.buffer; }
+
+function podText(arrival){
+  const city = String(arrival).split(",")[0].trim().toUpperCase();
+  const country = (String(arrival).split(",")[1]||"").trim().toUpperCase();
+  if (AU_STATES[city] && (!country || country==="AUSTRALIA")) return `${city},${AU_STATES[city]},AUSTRALIA`;
+  return String(arrival).toUpperCase();
+}
+function fillFromBooking(){
+  const b = booking;
+  $("f_booking").value = b.booking; $("f_invoice").value = b.invoice;
+  $("f_vessel").value = [b.vessel, b.voyage && "V." + b.voyage].filter(Boolean).join(" ");
+  $("f_pol").value = PORT_NAMES[b.pol.toUpperCase()] || b.pol;
+  $("f_pod").value = podText(b.pod); $("f_del").value = podText(b.pod);
+  $("f_line").value = b.line; $("f_cycut").value = b.cyCut; $("f_etd").value = `${b.etd} / ${b.eta}`;
+  $("f_commodity").value = b.commodity; $("f_sino").value = [b.siNo, b.shipCode].filter(Boolean).join(" / ");
+  ctrs = [];
+  for (const l of b.lines) for (let i=0;i<l.qty;i++) ctrs.push({
+    no:"", seal:"", type:l.type, pcs: l.qty===1 ? l.pcs : "", kg: l.qty===1 ? l.kg : "", cbm: l.qty===1 ? l.cbm : "",
+    tare: DEFAULT_TARE[l.type] ?? "", date: textToIso(l.date) });
+  if (!ctrs.length) ctrs.push(blankCtr());
+  renderCtrs(); showForm();
+}
+function blankCtr(){ const p = ctrs[ctrs.length-1] || {}; return { no:"", seal:"", type:p.type||"40HQ", pcs:"", kg:"", cbm:"", tare:p.tare ?? 3700, date:p.date||"" }; }
+function showForm(){
+  if (!booking || !templateBuf) return;
+  $("form").classList.remove("hidden");
+  const city = $("f_pod").value.split(",")[0].trim() || "DEST";
+  $("f_outname").value = `SHINKI_SRAU_VGM_SI_BKG._${$("f_booking").value}_${city}.xlsx`;
+  validate();
+}
+const FIELDS = [["no","text"],["seal","text"],["type","text"],["pcs","num"],["kg","num"],["cbm","num"],["tare","num"]];
+function renderCtrs(){
+  const body = $("ctrBody"); body.innerHTML = "";
+  ctrs.forEach((c,i) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${i+1}</td>` + FIELDS.map(([k,t]) =>
+      `<td class="${t==="num"?"num":""}"><input data-i="${i}" data-k="${k}" ${t==="num"?'inputmode="decimal"':''} value="${esc(c[k])}" ${k==="no"?'placeholder="ABCU1234567"':''}></td>`).join("")
+      + `<td class="num" data-vgm="${i}"></td><td><input type="date" data-i="${i}" data-k="date" value="${esc(c.date)}"></td>`;
+    body.appendChild(tr);
+  });
+  $("ctrInfo").textContent = `Booking ระบุ ${booking ? booking.total.qty : "?"} ตู้ · ในตาราง ${ctrs.length} ตู้ (สูงสุด ${MAX_CTR})`;
+  updateTotals();
+}
+const esc = v => String(v ?? "").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;");
+$("ctrBody").addEventListener("input", e => {
+  const el = e.target, i = +el.dataset.i, k = el.dataset.k; if (k===undefined) return;
+  let v = el.value;
+  if (k==="no" || k==="seal" || k==="type") { const up = v.toUpperCase(); if (up!==v){ const p=el.selectionStart; el.value=up; el.setSelectionRange(p,p);} v = up; }
+  ctrs[i][k] = v;
+  if (k==="date" && i===0) ctrs.forEach((c,j)=>{ if (j>0 && !c.date) { c.date=v; const d=document.querySelector(`input[data-i="${j}"][data-k="date"]`); if (d) d.value=v; } });
+  updateTotals();
+});
+$("addRow").onclick = () => { if (ctrs.length>=MAX_CTR) return alert(`Template รองรับสูงสุด ${MAX_CTR} ตู้`); ctrs.push(blankCtr()); renderCtrs(); };
+$("delRow").onclick = () => { if (ctrs.length>1) { ctrs.pop(); renderCtrs(); } };
+document.querySelectorAll("#form input, #form textarea").forEach(el => el.addEventListener("input", () => { if (el.id==="f_booking"||el.id==="f_pod") showForm(); else validate(); }));
+
+const num = v => { const n = parseFloat(String(v).replace(/,/g,"")); return isNaN(n) ? 0 : n; };
+function sums(){ return ctrs.reduce((t,c)=>({pcs:t.pcs+num(c.pcs),kg:t.kg+num(c.kg),cbm:t.cbm+num(c.cbm)}),{pcs:0,kg:0,cbm:0}); }
+function updateTotals(){
+  ctrs.forEach((c,i)=>{ const td=document.querySelector(`td[data-vgm="${i}"]`); if (td) td.textContent = (num(c.kg)+num(c.tare)).toLocaleString("en-US"); });
+  const s = sums();
+  $("ctrFoot").innerHTML = `<td></td><td colspan="3">รวม (Booking: ${booking? `${fmtInt(booking.total.pcs)} pcs · ${fmtInt(booking.total.kg)} kg · ${booking.total.cbm.toFixed(3)} CBM` : "-"})</td>`
+    + `<td class="num">${fmtInt(s.pcs)}</td><td class="num">${fmtInt(s.kg)}</td><td class="num">${s.cbm.toFixed(3)}</td><td colspan="3"></td>`;
+  validate();
+}
+const fmtInt = n => Math.round(n).toLocaleString("en-US");
+
+/* ---------- Validation ---------- */
+function isoCheckDigit(no){
+  const map = {}; let v = 10;
+  for (let c=65;c<=90;c++){ if (v%11===0) v++; map[String.fromCharCode(c)] = v++; }
+  let sum = 0;
+  for (let i=0;i<10;i++){ const ch=no[i]; sum += (i<4 ? map[ch] : +ch) * Math.pow(2,i); }
+  return (sum % 11) % 10;
+}
+function validate(){
+  if (!booking || !templateBuf) return [];
+  const out = [], E = t => out.push(["err",t]), W = t => out.push(["warn",t]);
+  if (!$("f_booking").value.trim()) E("ยังไม่มี Booking No.");
+  if (!$("f_invoice").value.trim()) E("ยังไม่มี Invoice No.");
+  if (!$("f_vessel").value.trim()) E("ยังไม่มีชื่อเรือ / เที่ยว");
+  if (!$("f_pod").value.trim()) E("ยังไม่มี Port of Discharge");
+  if (booking.booking && $("f_booking").value.trim() !== booking.booking) W("Booking No. ไม่ตรงกับไฟล์ Booking Request");
+  if (ctrs.length > MAX_CTR) E(`Template รองรับสูงสุด ${MAX_CTR} ตู้`);
+  if (booking.total.qty && ctrs.length !== booking.total.qty) W(`จำนวนตู้ในตาราง (${ctrs.length}) ไม่ตรงกับ Booking (${booking.total.qty})`);
+  const seen = {};
+  document.querySelectorAll('#ctrBody input').forEach(el => el.classList.remove("bad"));
+  const bad = (i,k) => { const el=document.querySelector(`input[data-i="${i}"][data-k="${k}"]`); if (el) el.classList.add("bad"); };
+  ctrs.forEach((c,i) => {
+    const n = i+1, no = c.no.replace(/\s|-/g,"");
+    if (!no) { E(`ตู้ #${n}: ยังไม่ใส่เลขตู้`); bad(i,"no"); }
+    else if (!/^[A-Z]{3}[UJZ]\d{7}$/.test(no)) { E(`ตู้ #${n}: รูปแบบเลขตู้ ${no} ไม่ถูกต้อง (ต้องเป็น 4 ตัวอักษร + 7 ตัวเลข)`); bad(i,"no"); }
+    else if (isoCheckDigit(no) !== +no[10]) { W(`ตู้ #${n}: เลขตู้ ${no} check digit ไม่ถูก (ควรลงท้ายด้วย ${isoCheckDigit(no)}) — ตรวจว่าพิมพ์ถูกไหม`); bad(i,"no"); }
+    if (no) { if (seen[no]) { E(`เลขตู้ ${no} ซ้ำ`); bad(i,"no"); } seen[no]=1; }
+    if (!c.seal.trim()) { E(`ตู้ #${n}: ยังไม่ใส่เลขซีล`); bad(i,"seal"); }
+    if (!num(c.pcs)) { E(`ตู้ #${n}: ยังไม่ใส่จำนวน Pieces`); bad(i,"pcs"); }
+    if (!num(c.kg)) { E(`ตู้ #${n}: ยังไม่ใส่น้ำหนักสินค้า`); bad(i,"kg"); }
+    if (!num(c.cbm)) { E(`ตู้ #${n}: ยังไม่ใส่ CBM`); bad(i,"cbm"); }
+    if (!num(c.tare)) { E(`ตู้ #${n}: ยังไม่ใส่ Tare`); bad(i,"tare"); }
+    if (!c.date) { E(`ตู้ #${n}: ยังไม่ใส่วันชั่ง`); bad(i,"date"); }
+    const cy = textToIso(booking.cyCut);
+    if (c.date && cy && c.date > cy) W(`ตู้ #${n}: วันชั่ง ${c.date} เลย CY Cut (${booking.cyCut})`);
+  });
+  const s = sums(), t = booking.total;
+  if (t.pcs && Math.round(s.pcs) !== Math.round(t.pcs)) W(`Pieces รวม ${fmtInt(s.pcs)} ≠ Booking ${fmtInt(t.pcs)}`);
+  if (t.kg && Math.abs(s.kg - t.kg) > 0.5) W(`น้ำหนักรวม ${fmtInt(s.kg)} kg ≠ Booking ${fmtInt(t.kg)} kg`);
+  if (t.cbm && Math.abs(s.cbm - t.cbm) > 0.0005) W(`CBM รวม ${s.cbm.toFixed(3)} ≠ Booking ${t.cbm.toFixed(3)}`);
+  for (const id of ["p_consignee","p_notify","p_agent"]) if ($(id).value.split("\n").length > 4) W(`${id.slice(2)}: เกิน 4 บรรทัด บรรทัดที่เกินจะถูกตัด`);
+  const errs = out.filter(m=>m[0]==="err").length;
+  if (!out.length) out.push(["ok","ข้อมูลครบ พร้อมดาวน์โหลด"]);
+  $("msgs").innerHTML = out.map(([k,t]) => `<li class="${k}">${k==="err"?"✖":k==="warn"?"⚠":"✔"} ${esc(t)}</li>`).join("");
+  $("btnBuild").textContent = errs ? `ดาวน์โหลด (ยังมี ${errs} จุดต้องแก้)` : "ดาวน์โหลด SI / VGM";
+  return out;
+}
+
+/* ---------- Writing the template ---------- */
+const ONES = ["ZERO","ONE","TWO","THREE","FOUR","FIVE","SIX","SEVEN","EIGHT","NINE","TEN","ELEVEN","TWELVE","THIRTEEN","FOURTEEN","FIFTEEN","SIXTEEN","SEVENTEEN","EIGHTEEN","NINETEEN"];
+const TENS = ["","","TWENTY","THIRTY","FORTY","FIFTY","SIXTY","SEVENTY","EIGHTY","NINETY"];
+function words(n){ if (n<20) return ONES[n]; if (n<100) return TENS[Math.floor(n/10)] + (n%10 ? "-" + ONES[n%10] : ""); return String(n); }
+
+function shiftFormula(f, dr, dc){
+  // shift relative refs (A1 style, outside string literals) by dr rows / dc cols
+  return f.split(/("[^"]*")/).map((part,i) => i % 2 ? part :
+    part.replace(/(?<![A-Za-z0-9_.])(\$?)([A-Z]{1,3})(\$?)(\d+)(?![\d(])/g,
+      (_, ac, col, ar, row) => ac + (ac ? col : colName(colNum(col) + dc)) + ar + (ar ? row : +row + dr))).join("");
+}
+
+class Sheet {
+  constructor(doc){ this.doc = doc; this.data = doc.getElementsByTagName("sheetData")[0];
+    this.rows = {}; for (const r of this.data.getElementsByTagName("row")) this.rows[r.getAttribute("r")] = r;
+    this.cells = {}; for (const c of this.data.getElementsByTagName("c")) this.cells[c.getAttribute("r")] = c;
+    this.unshare(); }
+  // Turn shared formulas into plain per-cell formulas, so overwriting the
+  // master cell can never break the cells that point to it.
+  unshare(){
+    const fs = [...this.data.getElementsByTagName("f")].filter(f => f.getAttribute("t") === "shared");
+    const master = {};
+    for (const f of fs) if (f.textContent) master[f.getAttribute("si")] = { text: f.textContent, at: splitRef(f.parentNode.getAttribute("r")) };
+    for (const f of fs) {
+      const m = master[f.getAttribute("si")];
+      if (m && !f.textContent) { const [c,r] = splitRef(f.parentNode.getAttribute("r")); f.textContent = shiftFormula(m.text, r - m.at[1], colNum(c) - colNum(m.at[0])); }
+      f.removeAttribute("t"); f.removeAttribute("ref"); f.removeAttribute("si");
+    }
+  }
+  cell(ref){
+    if (this.cells[ref]) return this.cells[ref];
+    const [col,rn] = splitRef(ref);
+    let row = this.rows[rn];
+    if (!row) { row = this.doc.createElementNS(NS,"row"); row.setAttribute("r", rn);
+      const next = [...this.data.getElementsByTagName("row")].find(r => +r.getAttribute("r") > rn);
+      this.data.insertBefore(row, next || null); this.rows[rn] = row; }
+    const c = this.doc.createElementNS(NS,"c"); c.setAttribute("r", ref);
+    const next = [...row.getElementsByTagName("c")].find(x => colNum(splitRef(x.getAttribute("r"))[0]) > colNum(col));
+    row.insertBefore(c, next || null); return this.cells[ref] = c;
+  }
+  clear(c){ while (c.firstChild) c.removeChild(c.firstChild); c.removeAttribute("t"); }
+  set(ref, val){
+    const c = this.cell(ref); this.clear(c);
+    if (val === null || val === undefined || val === "") return;
+    if (typeof val === "number") { const v = this.doc.createElementNS(NS,"v"); v.textContent = String(val); c.appendChild(v); return; }
+    c.setAttribute("t","inlineStr");
+    const is = this.doc.createElementNS(NS,"is"), t = this.doc.createElementNS(NS,"t");
+    t.setAttribute("xml:space","preserve"); t.textContent = val; is.appendChild(t); c.appendChild(is);
+  }
+  formula(ref){ const c = this.cells[ref]; const f = c && c.getElementsByTagName("f")[0]; return f ? f.textContent : null; }
+  setCached(ref, val){ // keep formula, replace cached value
+    const c = this.cells[ref]; if (!c) return;
+    for (const v of [...c.getElementsByTagName("v")]) c.removeChild(v);
+    c.removeAttribute("t");
+    if (val === null || val === undefined) return;
+    const v = this.doc.createElementNS(NS,"v");
+    if (typeof val === "string") c.setAttribute("t","str");
+    else if (typeof val === "boolean") { c.setAttribute("t","b"); val = val ? 1 : 0; }
+    v.textContent = String(val); c.appendChild(v);
+  }
+  value(ref){ // current literal value (numbers / inline strings written by us / cached)
+    const c = this.cells[ref]; if (!c) return null;
+    if (c.getAttribute("t")==="inlineStr") return c.getElementsByTagName("t")[0].textContent;
+    const v = c.getElementsByTagName("v")[0]; if (!v) return null;
+    return c.getAttribute("t")==="str" ? v.textContent : (c.getAttribute("t")==="s" ? this.sst[+v.textContent] : +v.textContent);
+  }
+}
+
+// Recompute cached values for the template's simple formulas so the file
+// shows correct numbers even in viewers that don't recalculate.
+function recalc(book){
+  const resolve = (name, expr) => {
+    expr = expr.trim();
+    const m = /^(?:(?:'([^']+)'|([A-Za-z0-9_]+))!)?\$?([A-Z]+)\$?(\d+)$/.exec(expr);
+    if (m) { const sh = m[1]||m[2]; const target = sh ? book[sh] : book[name]; return target ? get(sh||name, m[3]+m[4]) : null; }
+    return undefined;
+  };
+  const seen = new Set();
+  const get = (name, ref) => {
+    const sh = book[name]; const f = sh.formula(ref);
+    if (f === null) return sh.value(ref);
+    const key = name+"!"+ref; if (seen.has(key)) return sh.value(ref); seen.add(key);
+    const val = evalF(name, f); sh.setCached(ref, val === undefined ? null : val); return val;
+  };
+  const evalF = (name, f) => {
+    let r = resolve(name, f); if (r !== undefined) return r === null ? 0 : r;
+    let m = /^([A-Z]+\d+)\+([A-Z]+\d+)$/.exec(f);
+    if (m) return (+resolve(name,m[1])||0) + (+resolve(name,m[2])||0);
+    m = /^IF\(([A-Z]+\d+)>=([\d.]+),"([^"]*)"\)$/.exec(f);
+    if (m) return (+resolve(name,m[1])||0) >= +m[2] ? m[3] : false;
+    return undefined; // unknown formula: drop cache, Excel recalculates on open
+  };
+  for (const name in book) for (const ref in book[name].cells) if (book[name].formula(ref) !== null) get(name, ref);
+}
+
+async function build(){
+  const zip = await JSZip.loadAsync(templateBuf);
+  const sheets = await sheetPaths(zip), sst = await sharedStrings(zip);
+  const find = n => sheets.find(s => s.name.trim().toUpperCase().startsWith(n));
+  const book = {};
+  for (const s of sheets) { const sh = new Sheet(parseXml(await zip.file(s.path).async("string"))); sh.sst = sst; sh.path = s.path; book[s.name] = sh; }
+  const si = book[find("SI DATA").name], vgm = book[find("VGM").name], att = book[find("ATTACH").name];
+
+  const s = sums(), n = ctrs.length;
+  const types = {}; ctrs.forEach(c => { const t = (c.type||"40HQ").trim(); types[t] = (types[t]||0)+1; });
+  si.set(SI.booking, /^\d+$/.test($("f_booking").value.trim()) ? +$("f_booking").value.trim() : $("f_booking").value.trim());
+  si.set(SI.vessel, $("f_vessel").value.trim());
+  si.set(SI.polA, $("f_pol").value.trim() + " "); si.set(SI.polB, $("f_pol").value.trim());
+  si.set(SI.pod, $("f_pod").value.trim()); si.set(SI.del, $("f_del").value.trim());
+  si.set(SI.ctrSummary, Object.entries(types).map(([t,q]) => `${q}x${t}`).join(" + "));
+  si.set(SI.pcs, `${fmtInt(s.pcs)} PIECE(S)`);
+  si.set(SI.kg, `${fmtInt(s.kg)} KGS `);
+  si.set(SI.cbm, `${s.cbm.toFixed(3)}  CBM`);
+  si.set(SI.desc, $("f_desc").value.trim() + " ");
+  si.set(SI.invoice, `I/V NO. ${$("f_invoice").value.trim()}`);
+  si.set(SI.total, `TOTAL : ${words(n)} (${n}) CONTAINER${n>1?"S":""} ONLY `);
+  for (const [key,id] of [["consignee","p_consignee"],["notify","p_notify"],["agent","p_agent"]]) {
+    const lines = $(id).value.split("\n");
+    SI[key].forEach((ref,i) => si.set(ref, lines[i]||""));
+  }
+
+  for (let i=0;i<MAX_CTR;i++) {
+    const c = ctrs[i], ar = ATTACH_FIRST+i, vr = VGM_FIRST+i;
+    att.set("B"+ar, c ? c.no.replace(/\s|-/g,"") : "");
+    att.set("C"+ar, c ? c.seal.trim() : "");
+    att.set("D"+ar, c ? num(c.pcs) : "");
+    att.set("F"+ar, c ? num(c.kg) : "");
+    att.set("H"+ar, c ? num(c.cbm) : "");
+    if (!c || att.formula("J"+ar) === null || c.type !== "40HQ") att.set("J"+ar, c ? c.type : "");
+    vgm.set("B"+vr, c && c.date ? dateToSerial(c.date) : "");
+    vgm.set("C"+vr, c ? 2 : "");
+    vgm.set("G"+vr, c ? num(c.tare) : "");
+  }
+  recalc(book);
+
+  for (const name in book) zip.file(book[name].path, serXml(book[name].doc));
+  // force Excel to recalculate everything on open; drop the stale calc chain
+  zip.remove("xl/calcChain.xml");
+  let rels = await zip.file("xl/_rels/workbook.xml.rels").async("string");
+  zip.file("xl/_rels/workbook.xml.rels", rels.replace(/<Relationship [^>]*calcChain[^>]*\/>/, ""));
+  let ct = await zip.file("[Content_Types].xml").async("string");
+  zip.file("[Content_Types].xml", ct.replace(/<Override [^>]*calcChain[^>]*\/>/, ""));
+  let wb = await zip.file("xl/workbook.xml").async("string");
+  wb = /<calcPr\b/.test(wb) ? wb.replace(/<calcPr\b([^>]*?)\s*\/>/, (m,a) => `<calcPr${a.replace(/\s*fullCalcOnLoad="[^"]*"/,"")} fullCalcOnLoad="1"/>`)
+                            : wb.replace("</workbook>", '<calcPr fullCalcOnLoad="1"/></workbook>');
+  zip.file("xl/workbook.xml", wb);
+
+  return zip.generateAsync({ type:"blob", compression:"DEFLATE", mimeType:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+}
+
+$("btnBuild").onclick = async () => {
+  const msgs = validate(), errs = msgs.filter(m=>m[0]==="err").length;
+  if (errs && !confirm(`ยังมี ${errs} จุดที่ต้องแก้ ต้องการดาวน์โหลดทั้งที่ยังไม่ครบหรือไม่?`)) return;
+  try {
+    const blob = await build();
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+    let name = $("f_outname").value.trim() || "SI_VGM.xlsx"; if (!/\.xlsx$/i.test(name)) name += ".xlsx";
+    a.download = name; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  } catch(e) { alert("สร้างไฟล์ไม่สำเร็จ: " + e.message); console.error(e); }
+};
+
+// restore remembered template
+try { const m = JSON.parse(localStorage.getItem("sivgm_tpl")||"null"); if (m) loadTemplate(unb64(m.data), m.name + " (จำไว้จากครั้งก่อน)").catch(()=>{}); } catch(_){}
+</script>
+</body>
+</html>
