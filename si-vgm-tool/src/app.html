@@ -211,7 +211,7 @@ const SI = { booking:"J2", vessel:"A28", polA:"D25", polB:"D28", pod:"A31", del:
 const ATTACH_FIRST = 6, VGM_FIRST = 12, MAX_CTR = 15; // VGM table rows 12-26 link to ATTACH rows 6-20
 const DEFAULT_TARE = { "40HQ":3700, "40GP":3700, "20GP":2200 };
 const PORT_NAMES = { THLCH:"LAEM CHABANG, THAILAND", THBKK:"BANGKOK, THAILAND", THLKR:"LAT KRABANG, THAILAND" };
-const AU_PORTS = ["ADELAIDE","SYDNEY","MELBOURNE","BRISBANE","FREMANTLE","PERTH","DARWIN","HOBART","TOWNSVILLE"];
+const AU_STATES = { ADELAIDE:"SA", SYDNEY:"NSW", MELBOURNE:"VIC", BRISBANE:"QLD", FREMANTLE:"WA", PERTH:"WA", DARWIN:"NT", HOBART:"TAS", TOWNSVILLE:"QLD" };
 const REQ_SHEET = "CONTAINER INFO";
 const NOFOLDERS = { createFolders: false }; // don't add folder entries the source file never had
 
@@ -505,8 +505,7 @@ function unb64(s){ const b=atob(s), u=new Uint8Array(b.length); for (let i=0;i<b
 function podText(arrival){
   const city = String(arrival).split(",")[0].trim().toUpperCase();
   const country = (String(arrival).split(",")[1]||"").trim().toUpperCase();
-  // as typed in the real SI: "ADELAIDE, AUSTRALIA" (no state)
-  if (AU_PORTS.includes(city) && (!country || country==="AUSTRALIA")) return `${city}, AUSTRALIA`;
+  if (AU_STATES[city] && (!country || country==="AUSTRALIA")) return `${city},${AU_STATES[city]},AUSTRALIA`;
   return String(arrival).toUpperCase();
 }
 function fillFromBooking(){
@@ -761,7 +760,7 @@ function fill(si, vgm, att){
   si.set(SI.cbm, `${s.cbm.toFixed(3)}  CBM`);
   si.set(SI.desc, $("f_desc").value.trim() + " ");
   si.set(SI.invoice, `I/V NO. ${$("f_invoice").value.trim()}`);
-  si.set(SI.total, `TOTAL : ${words(n)} (${n}) CONTAINER${n>1?"S":""} ONLY `);
+  si.set(SI.total, `TOTAL : ${words(n)} (${n}) CONTAINERS ONLY `); // template writes CONTAINERS even for one
   for (const [key,id] of [["consignee","p_consignee"],["notify","p_notify"],["agent","p_agent"]]) {
     const lines = $(id).value.split("\n");
     // only touch a party cell when its text really changed, so the template's own cell stays as-is

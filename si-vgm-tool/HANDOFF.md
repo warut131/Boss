@@ -40,12 +40,12 @@ sheet1 = `SI DATA`, sheet2 = `VGM ` (มีช่องว่างท้าย�
 | SI DATA | J2 | Booking No (ตัวเลข) |
 | | A28 | `KOTA LUMAYAN V.194S` |
 | | D25 / D28 | `LAEM CHABANG, THAILAND ` (D25 มีช่องว่างท้าย) / `LAEM CHABANG, THAILAND` |
-| | A31 / D31 | `ADELAIDE, AUSTRALIA` (รูปแบบ "CITY, AUSTRALIA" ตามไฟล์จริงที่ทีมกรอก — ไม่มีชื่อรัฐ) |
+| | A31 / D31 | `ADELAIDE,SA,AUSTRALIA` (รูปแบบ CITY,STATE,AUSTRALIA ตามต้นฉบับ — ยึดต้นฉบับเสมอ) |
 | | D38 | `1x40HQ` |
 | | D39 / J39 / K39 | `527 PIECE(S)` / `8,295 KGS ` (ช่องว่างท้าย) / `66.789  CBM` (2 ช่องว่าง) |
 | | E40 | `FALKEN/SUMITOMO TYRES ` |
 | | E41 | `I/V NO. EET261014536` |
-| | C58 | `TOTAL : ONE (1) CONTAINER ONLY ` (หลายตู้ → `TWO (2) CONTAINERS`) |
+| | C58 | `TOTAL : ONE (1) CONTAINERS ONLY ` (ต้นฉบับใช้ CONTAINERS เสมอ) |
 | | A9–A12 / A17–A20 / G24–G27 | Consignee (Dunlop Prestons) / Notify (Toll Sydney) / Agent (Diamond Freight) — ค่าคงที่ของ Template |
 | ATTACH | แถว 6–20: B,C,D,F,H,J | เลขตู้, ซีล, เส้น, kg, CBM, Type · I1 = `'SI DATA'!J2` |
 | VGM | แถว 12–26: B,C,G | วันชั่ง (date serial), Method `2`, Tare · A/D/H = สูตรดึงจาก ATTACH (H = G+D) · E6 = booking · E35 = B12 |
