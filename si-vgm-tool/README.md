@@ -35,3 +35,9 @@
 python3 make_blank_template.py ไฟล์ที่กรอกแล้ว.xlsx Template_เปล่า.xlsx
 ```
 ล้างข้อมูลงาน (Booking, เรือ, ท่าเรือ, จำนวนตู้/น้ำหนัก, I/V, รายการตู้, ข้อมูล VGM) แต่คงข้อมูลคงที่ (Shipper, Consignee, Notify, Agent, ผู้ติดต่อ, FREIGHT PREPAID) และรูปแบบ/สูตรไว้
+
+## ตรวจว่าไฟล์ที่ได้ไม่เพี้ยนจาก Template
+```
+python3 audit_xlsx.py Template.xlsx ไฟล์ที่ได้.xlsx
+```
+เทียบทีละช่อง: style/ฟอนต์, merge, ความกว้างคอลัมน์, ความสูงแถว, ตั้งค่าหน้ากระดาษ, สูตร และแสดงรายการข้อความที่เปลี่ยน

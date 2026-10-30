@@ -225,6 +225,7 @@ const DEFAULT_TARE = { "40HQ":3700, "40GP":3700, "20GP":2200 };
 const PORT_NAMES = { THLCH:"LAEM CHABANG, THAILAND", THBKK:"BANGKOK, THAILAND", THLKR:"LAT KRABANG, THAILAND" };
 const AU_STATES = { ADELAIDE:"SA", SYDNEY:"NSW", MELBOURNE:"VIC", BRISBANE:"QLD", FREMANTLE:"WA", PERTH:"WA", DARWIN:"NT", HOBART:"TAS", TOWNSVILLE:"QLD" };
 const REQ_SHEET = "CONTAINER INFO";
+const NOFOLDERS = { createFolders: false }; // don't add folder entries the source file never had
 
 let booking = null, templateBuf = null, templateName = "", ctrs = [], teamInfo = null;
 
@@ -365,12 +366,12 @@ async function readTemplate(buf){
 /* ---------- Container info request (to / from the container team) ---------- */
 function xlsxPackage(sheetName, sheetXml, stylesXml){
   const zip = new JSZip();
-  zip.file("[Content_Types].xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>`);
-  zip.file("_rels/.rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`);
-  zip.file("xl/workbook.xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="${NS}" xmlns:r="${RNS}"><sheets><sheet name="${xmlEsc(sheetName)}" sheetId="1" r:id="rId1"/></sheets></workbook>`);
-  zip.file("xl/_rels/workbook.xml.rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`);
-  zip.file("xl/styles.xml", stylesXml);
-  zip.file("xl/worksheets/sheet1.xml", sheetXml);
+  zip.file("[Content_Types].xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>`, NOFOLDERS);
+  zip.file("_rels/.rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`, NOFOLDERS);
+  zip.file("xl/workbook.xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="${NS}" xmlns:r="${RNS}"><sheets><sheet name="${xmlEsc(sheetName)}" sheetId="1" r:id="rId1"/></sheets></workbook>`, NOFOLDERS);
+  zip.file("xl/_rels/workbook.xml.rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`, NOFOLDERS);
+  zip.file("xl/styles.xml", stylesXml, NOFOLDERS);
+  zip.file("xl/worksheets/sheet1.xml", sheetXml, NOFOLDERS);
   return zip.generateAsync({ type:"blob", compression:"DEFLATE", mimeType:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
 }
 // style ids: 1 title, 2 label, 3 value, 4 note, 5 header, 6 read-only text, 7 input text, 8 input number, 9 read-only #,##0, 10 read-only 0.000
@@ -770,7 +771,8 @@ function fill(si, vgm, att){
   si.set(SI.total, `TOTAL : ${words(n)} (${n}) CONTAINER${n>1?"S":""} ONLY `);
   for (const [key,id] of [["consignee","p_consignee"],["notify","p_notify"],["agent","p_agent"]]) {
     const lines = $(id).value.split("\n");
-    SI[key].forEach((ref,i) => si.set(ref, lines[i]||"", false));
+    // only touch a party cell when its text really changed, so the template's own cell stays as-is
+    SI[key].forEach((ref,i) => { if (String(si.value(ref) ?? "") !== (lines[i]||"")) si.set(ref, lines[i]||""); });
   }
   att.missing = new Set(); vgm.missing = new Set();
   for (let i=0;i<MAX_CTR;i++) {
@@ -790,17 +792,17 @@ function fill(si, vgm, att){
 
 async function build(){
   const { zip, book } = await buildBook();
-  for (const name in book) zip.file(book[name].path, serXml(book[name].doc));
+  for (const name in book) zip.file(book[name].path, serXml(book[name].doc), NOFOLDERS);
   // force Excel to recalculate everything on open; drop the stale calc chain
   zip.remove("xl/calcChain.xml");
   const rels = await zip.file("xl/_rels/workbook.xml.rels").async("string");
-  zip.file("xl/_rels/workbook.xml.rels", rels.replace(/<Relationship [^>]*calcChain[^>]*\/>/, ""));
+  zip.file("xl/_rels/workbook.xml.rels", rels.replace(/<Relationship [^>]*calcChain[^>]*\/>/, ""), NOFOLDERS);
   const ct = await zip.file("[Content_Types].xml").async("string");
-  zip.file("[Content_Types].xml", ct.replace(/<Override [^>]*calcChain[^>]*\/>/, ""));
+  zip.file("[Content_Types].xml", ct.replace(/<Override [^>]*calcChain[^>]*\/>/, ""), NOFOLDERS);
   let wb = await zip.file("xl/workbook.xml").async("string");
   wb = /<calcPr\b/.test(wb) ? wb.replace(/<calcPr\b([^>]*?)\s*\/>/, (m,a) => `<calcPr${a.replace(/\s*fullCalcOnLoad="[^"]*"/,"")} fullCalcOnLoad="1"/>`)
                             : wb.replace("</workbook>", '<calcPr fullCalcOnLoad="1"/></workbook>');
-  zip.file("xl/workbook.xml", wb);
+  zip.file("xl/workbook.xml", wb, NOFOLDERS);
   return zip.generateAsync({ type:"blob", compression:"DEFLATE", mimeType:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
 }
 
