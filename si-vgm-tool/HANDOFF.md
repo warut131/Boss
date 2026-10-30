@@ -72,6 +72,7 @@ sheet1 = `SI DATA`, sheet2 = `VGM ` (มีช่องว่างท้าย�
   - สถานะ "รอข้อมูล x/y ตู้" · Tare ว่างไว้จนกว่าทีมตู้จะส่งค่าจริง (ไม่ใส่ค่าเดา)
 - ตรวจสอบ: ISO 6346 check digit, เลขตู้ซ้ำ, ผลรวมเทียบ Booking, จำนวนตู้, วันชั่งเลย CY Cut
 - **ตรวจกับ PDF** (`pdfChecks` ใน app.html): Shinki `SE…pdf` ไม่มี text layer (ตัวอักษรเป็นเส้น) → render ด้วย PDF.js แล้ว OCR ด้วย Tesseract.js (ฝังในไฟล์, offline) · C invoice มี text → อ่านตามตำแหน่ง label · OCR สับสน S/5/8 จึงเทียบช่องข้อความด้วย `ocrFold` · Destination ใน C invoice ส่วนใหญ่ไม่มีรัฐ มีแค่ Adelaide (`ADELAIDE,SA`)
+- **Report_Shipment Export ผ่าน Power Automate**: ปุ่ม "ไฟล์ส่งเข้า Report" → `SIVGM_REPORT_<booking>.json` → Flow (OneDrive trigger) → Excel Run script `power-automate/UpdateShipmentReport.ts` (Office Script เพราะไฟล์ Report ไม่ใช่ Table และมี merge D/F/G) · upsert ตาม Booking · คู่มือ `power-automate/README.md` · ทดสอบด้วย mock แล้ว ยังไม่ได้รันใน M365 จริง
 - ทดสอบกับ 5 งานใน `Shipment/SRT-2611-001..005` ผ่านหมด · เจอของจริง: Booking 003 ตู้ 5–7 วันบรรจุปี 2027 · งาน 005 ตู้ 5–10 บรรจุ 06-Nov เลย VGM cut off 05-Nov
 
 ## 6. งานค้าง / สิ่งที่ผู้ใช้จะทำต่อ

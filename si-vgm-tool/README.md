@@ -13,6 +13,7 @@
    - ทีมตู้กรอกเฉพาะช่องสีเหลือง: Container No. · Seal No. · Tare weight (ช่องอื่นถูกล็อกไว้)
 4. ได้ไฟล์กลับมา → ลากมาวางในช่องเดิม ข้อมูลเข้าตารางเอง (ถ้าทีมตอบเป็นข้อความทาง LINE ใช้ "วางข้อความ")
 5. ดูแถบตรวจสอบ แล้วกด **ดาวน์โหลด SI / VGM**
+6. (ถ้าตั้ง Power Automate ไว้) กด **ไฟล์ส่งเข้า Report** แล้วบันทึกลง OneDrive "SIVGM Report Inbox" → Report_Shipment Export กรอกให้เอง — วิธีตั้งค่าดู [`power-automate/README.md`](power-automate/README.md)
 
 ## สิ่งที่เครื่องมือกรอกให้
 | ชีต | ช่อง |

@@ -186,6 +186,10 @@ table.xl{border-collapse:collapse;table-layout:fixed;font-family:Calibri,Arial,s
     <label style="flex:1;min-width:240px">ชื่อไฟล์ <input id="f_outname"></label>
     <button class="primary" id="btnBuild" type="button">ดาวน์โหลด SI / VGM</button>
   </div>
+  <div class="row" style="margin-top:8px">
+    <span class="muted" style="flex:1;min-width:240px">อัปเดต Report_Shipment Export อัตโนมัติ: บันทึกไฟล์นี้ลงโฟลเดอร์ OneDrive "SIVGM Report Inbox" (Power Automate จะกรอกให้)</span>
+    <button id="btnReport" type="button">ไฟล์ส่งเข้า Report</button>
+  </div>
 </section>
 </div>
 </div>
@@ -415,6 +419,7 @@ function parseShinki(text){
     pol: g(/PORT OF LOADING\s*:?\s*(.+)/), pod: g(/PORT OF DI?E?SCHARGE\s*:?\s*(.+)/), del: g(/PORT OF DELIVERY\s*:?\s*(.+)/),
     vessel: g(/FEEDER\s*&?\s*VOY\.?\s*:?\s*(.+)/), carrier: g(/CARRIER\s*:?\s*(.+)/),
     closing: close ? `${close[3]}-${close[2]}-${close[1]} ${close[4]}:${close[5]}` : "",
+    returnCode: g(/PPL\s*:?\s*(\d{3,5})/), // container return terminal code, e.g. "C1C2 : PPL : 2836"
   };
 }
 function parseInvoice(pages){
@@ -942,6 +947,29 @@ async function build(){
   zip.file("xl/workbook.xml", wb, NOFOLDERS);
   return zip.generateAsync({ type:"blob", compression:"DEFLATE", mimeType:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
 }
+
+/* ---------- Hand-off to the shipment report (Power Automate + Office Script) ---------- */
+function reportPayload(){
+  const sh = pdfDocs.shinki || {}, cy = textToIso(booking.cyCut);
+  const done = k => ctrs.every(c => k(c));
+  return {
+    version: 1, source: "SI/VGM Builder", createdAt: new Date().toISOString(),
+    booking: $("f_booking").value.trim(), invoice: $("f_invoice").value.trim(), vessel: $("f_vessel").value.trim(),
+    etd: textToIso(booking.etd), eta: textToIso(booking.eta), carrier: booking.line, port: $("f_pod").value.split(",")[0].trim(),
+    siCut: sh.siCut || "", vgmCut: sh.vgmCut || "", closing: (sh.closing || "").split(" ")[0] || cy, returnCode: sh.returnCode || "",
+    preInvoice: !!pdfDocs.invoice,
+    siReady: done(c => cleanNo(c.no) && c.seal.trim()),          // container + seal known for every box
+    vgmReady: done(c => cleanNo(c.no) && c.tare !== "" && c.date), // tare + weighing date known for every box
+    containers: ctrs.map((c,i) => ({ seq:i+1, loadDate:c.date || "", size:c.type, no:cleanNo(c.no), seal:c.seal.trim(), tare:c.tare === "" ? null : num(c.tare),
+      pcs:num(c.pcs), kg:num(c.kg), cbm:num(c.cbm) })),
+  };
+}
+$("btnReport").onclick = () => {
+  if (!booking) return;
+  if (!pdfDocs.shinki && !confirm("ยังไม่ได้วาง PDF Shinki — ช่อง SI/VGM cut off, Closing, Return ใน Report จะว่าง ต้องการทำต่อหรือไม่?")) return;
+  const p = reportPayload();
+  download(new Blob([JSON.stringify(p, null, 1)], { type:"application/json" }), `SIVGM_REPORT_${p.booking || "NOBOOKING"}.json`);
+};
 
 $("btnBuild").onclick = async () => {
   const msgs = validate(), errs = msgs.filter(m=>m[0]==="err").length;
