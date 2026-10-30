@@ -6,126 +6,143 @@
 <title>SI / VGM Builder</title>
 <style>
 :root{
-  --bg:#f5f6f8; --card:#fff; --ink:#1d2330; --muted:#667085; --line:#d9dde5;
-  --accent:#1f5fbf; --accent-ink:#fff; --ok:#1b7f3b; --warn:#a15c00; --err:#b42318;
-  --ok-bg:#e8f5ec; --warn-bg:#fff4e0; --err-bg:#fdecea; --input:#fff;
+  --bg:#f3f4f7; --card:#fff; --ink:#1d2330; --muted:#667085; --line:#d9dde5;
+  --accent:#1f5fbf; --accent-ink:#fff; --accent-soft:#e7effc; --ok:#1b7f3b; --warn:#a15c00; --err:#b42318;
+  --ok-bg:#e8f5ec; --warn-bg:#fff4e0; --err-bg:#fdecea; --input:#fff; --stage:#e4e7ec; --yellow:#fff6cc;
 }
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
   --bg:#14171c; --card:#1c2027; --ink:#e7eaf0; --muted:#98a2b3; --line:#323844;
-  --accent:#5b8ff0; --accent-ink:#0b1220; --ok:#5cc983; --warn:#f0b452; --err:#f27b6f;
-  --ok-bg:#16301f; --warn-bg:#33270f; --err-bg:#3a1a17; --input:#232832;
+  --accent:#5b8ff0; --accent-ink:#0b1220; --accent-soft:#1d2b45; --ok:#5cc983; --warn:#f0b452; --err:#f27b6f;
+  --ok-bg:#16301f; --warn-bg:#33270f; --err-bg:#3a1a17; --input:#232832; --stage:#0f1216; --yellow:#3a3415;
 }}
+:root[data-theme="dark"]{
+  --bg:#14171c; --card:#1c2027; --ink:#e7eaf0; --muted:#98a2b3; --line:#323844;
+  --accent:#5b8ff0; --accent-ink:#0b1220; --accent-soft:#1d2b45; --ok:#5cc983; --warn:#f0b452; --err:#f27b6f;
+  --ok-bg:#16301f; --warn-bg:#33270f; --err-bg:#3a1a17; --input:#232832; --stage:#0f1216; --yellow:#3a3415;
+}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 "Segoe UI","Tahoma","Noto Sans Thai",sans-serif}
-header{padding:18px 16px 8px;max-width:1150px;margin:0 auto}
-header h1{margin:0;font-size:20px}
-header p{margin:4px 0 0;color:var(--muted)}
-main{max-width:1150px;margin:0 auto;padding:8px 16px 60px}
-section{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:12px 0}
-section h2{margin:0 0 10px;font-size:15px}
-section h2 .n{display:inline-block;width:22px;height:22px;border-radius:50%;background:var(--accent);color:var(--accent-ink);text-align:center;line-height:22px;font-size:12px;margin-right:6px}
-.drops{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-@media (max-width:700px){.drops{grid-template-columns:1fr}}
-.drop{border:2px dashed var(--line);border-radius:10px;padding:16px;text-align:center;cursor:pointer;min-height:96px;display:flex;flex-direction:column;justify-content:center;gap:4px}
-.drop.over{border-color:var(--accent)}
-.drop.done{border-style:solid;border-color:var(--ok);background:var(--ok-bg)}
-.drop b{font-size:14px}
-.drop small{color:var(--muted);word-break:break-all}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px 14px}
+header{padding:14px 16px 4px;display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+header h1{margin:0;font-size:19px}
+header p{margin:0;color:var(--muted);font-size:13px}
+.app{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:14px;padding:8px 16px 16px;align-items:start}
+@media (max-width:1100px){.app{grid-template-columns:1fr}}
+section{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin:0 0 12px}
+section h2{margin:0 0 10px;font-size:15px;display:flex;align-items:center;gap:6px}
+section h2 .n{display:inline-block;width:22px;height:22px;border-radius:50%;background:var(--accent);color:var(--accent-ink);text-align:center;line-height:22px;font-size:12px}
+.drop{border:2px dashed var(--line);border-radius:10px;padding:14px;text-align:center;cursor:pointer}
+.drop.over{border-color:var(--accent);background:var(--accent-soft)}
+.drop b{display:block}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.chip{font-size:12px;border-radius:99px;padding:3px 10px;background:var(--bg);border:1px solid var(--line);color:var(--muted);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chip.done{background:var(--ok-bg);border-color:transparent;color:var(--ok)}
+.chip.wait{background:var(--warn-bg);border-color:transparent;color:var(--warn)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px 12px}
 label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted)}
-input,textarea,select{font:inherit;color:var(--ink);background:var(--input);border:1px solid var(--line);border-radius:6px;padding:6px 8px;width:100%}
+input,textarea{font:inherit;color:var(--ink);background:var(--input);border:1px solid var(--line);border-radius:6px;padding:6px 8px;width:100%}
+input[readonly]{background:transparent;border-style:dashed}
 textarea{font-family:Consolas,"Courier New",monospace;font-size:12.5px;resize:vertical}
 input:focus,textarea:focus{outline:2px solid var(--accent);outline-offset:-1px}
 input.bad{border-color:var(--err);background:var(--err-bg)}
-.parties{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
-@media (max-width:900px){.parties{grid-template-columns:1fr}}
+input.fromteam{background:var(--yellow)}
+.parties{display:grid;grid-template-columns:1fr;gap:8px}
 .tablewrap{overflow-x:auto}
-table{border-collapse:collapse;width:100%;min-width:820px}
-th,td{border-bottom:1px solid var(--line);padding:5px 4px;text-align:left;font-size:13px}
-th{color:var(--muted);font-weight:600;font-size:12px}
-td input{padding:4px 6px}
-td.num input{text-align:right}
-tfoot td{font-weight:600}
-.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-button{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:7px;padding:7px 14px;cursor:pointer}
-button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600;padding:10px 20px}
-button:disabled{opacity:.5;cursor:not-allowed}
-.msgs{list-style:none;margin:0 0 12px;padding:0;display:flex;flex-direction:column;gap:6px}
-.msgs li{padding:7px 10px;border-radius:6px;font-size:13px}
+table.ctr{border-collapse:collapse;width:100%;min-width:760px}
+.ctr th,.ctr td{border-bottom:1px solid var(--line);padding:4px 3px;text-align:left;font-size:13px}
+.ctr th{color:var(--muted);font-weight:600;font-size:11.5px;white-space:nowrap}
+.ctr th.team{color:var(--warn)}
+.ctr td input{padding:4px 6px}
+.ctr td.num input,.ctr td.num{text-align:right}
+.ctr tfoot td{font-weight:600}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.spacer{flex:1}
+button{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:7px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--accent)}
+button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600;padding:9px 18px}
+.handoff{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
+@media (max-width:640px){.handoff{grid-template-columns:1fr}}
+.step{border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:12.5px;display:flex;flex-direction:column;gap:6px}
+.step b{font-size:13px}
+.step .muted{flex:1}
+.status{font-size:12.5px;padding:6px 10px;border-radius:6px;margin-bottom:8px}
+.status.wait{background:var(--warn-bg);color:var(--warn)}
+.status.done{background:var(--ok-bg);color:var(--ok)}
+details summary{cursor:pointer;color:var(--accent);font-size:12.5px;margin:6px 0}
+.msgs{list-style:none;margin:0 0 10px;padding:0;display:flex;flex-direction:column;gap:5px;max-height:220px;overflow:auto}
+.msgs li{padding:6px 10px;border-radius:6px;font-size:13px}
 .msgs .err{background:var(--err-bg);color:var(--err)}
 .msgs .warn{background:var(--warn-bg);color:var(--warn)}
 .msgs .ok{background:var(--ok-bg);color:var(--ok)}
 .muted{color:var(--muted);font-size:12px}
-.hidden{display:none}
+.hidden{display:none !important}
+a{color:var(--accent)}
+
+/* preview */
+.pv{position:sticky;top:10px;height:calc(100vh - 20px);display:flex;flex-direction:column;background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+@media (max-width:1100px){.pv{position:static;height:85vh}}
+.pvbar{display:flex;gap:6px;align-items:center;padding:8px 10px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.pvbar .tab{padding:4px 10px;font-size:12.5px;border-radius:6px}
+.pvbar .tab.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.pvbar label{flex-direction:row;align-items:center;gap:4px;font-size:12px}
+.pvbar select{font:inherit;font-size:12px;background:var(--input);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:3px}
+.stage{flex:1;overflow:auto;background:var(--stage);padding:16px}
+.paper{background:#fff;color:#000;box-shadow:0 2px 10px rgba(0,0,0,.25);margin:0 auto;width:max-content;padding:18px}
+.empty{color:var(--muted);text-align:center;padding:60px 20px}
+table.xl{border-collapse:collapse;table-layout:fixed;font-family:Calibri,Arial,sans-serif}
+.xl td{padding:0 2px;overflow:visible;position:relative;vertical-align:bottom;white-space:nowrap;line-height:1.15}
+.xl td > div{position:relative;z-index:1;overflow:visible}
+.xl td.wrap > div{white-space:pre-wrap;overflow:hidden;z-index:0}
+.xl td.hl::after{content:"";position:absolute;inset:0;box-shadow:inset 0 0 0 2px rgba(31,95,191,.75);background:rgba(31,95,191,.08);pointer-events:none;z-index:2}
+.xl td.hl.missing::after{box-shadow:inset 0 0 0 2px rgba(220,120,0,.85);background:rgba(255,190,0,.18)}
 </style>
 </head>
 <body>
 <header>
   <h1>SI / VGM Builder</h1>
-  <p>สร้างไฟล์ SI / VGM จาก Booking Request · ทำงานในเครื่องนี้ทั้งหมด ไม่ส่งข้อมูลออกอินเทอร์เน็ต</p>
+  <p>ทำงานในเครื่องนี้ทั้งหมด ไม่ส่งข้อมูลออกอินเทอร์เน็ต</p>
 </header>
-<main>
+<div class="app">
+<div class="left">
 
 <section>
-  <h2><span class="n">1</span>เลือกไฟล์</h2>
-  <div class="drops">
-    <div class="drop" id="dropBooking" tabindex="0">
-      <b>Booking Request (.xlsx)</b>
-      <span class="muted">ลากไฟล์มาวาง หรือคลิกเพื่อเลือก</span>
-      <small id="nameBooking"></small>
-      <input type="file" id="fileBooking" accept=".xlsx" hidden>
-    </div>
-    <div class="drop" id="dropTemplate" tabindex="0">
-      <b>Template SI / VGM (.xlsx) — ไม่ต้องใส่ก็ได้</b>
-      <span class="muted">ลากไฟล์มาวาง หรือคลิกเพื่อเลือก</span>
-      <small id="nameTemplate"></small>
-      <input type="file" id="fileTemplate" accept=".xlsx" hidden>
-    </div>
+  <h2><span class="n">1</span>วางไฟล์</h2>
+  <div class="drop" id="drop" tabindex="0">
+    <b>ลากไฟล์มาวางที่นี่ หรือคลิกเพื่อเลือก</b>
+    <span class="muted">Booking Request · ไฟล์ข้อมูลตู้ที่ทีมส่งกลับ · Template (ถ้าเปลี่ยนปลายทาง) — วางพร้อมกันหลายไฟล์ได้</span>
+    <input type="file" id="fileInput" accept=".xlsx" multiple hidden>
   </div>
-  <p class="muted"><span id="tplMemo"></span> <a href="#" id="useBuiltin" class="hidden">กลับไปใช้ Template ในตัว</a></p>
+  <div class="chips">
+    <span class="chip" id="chipBooking">Booking: ยังไม่มี</span>
+    <span class="chip" id="chipTeam">ข้อมูลตู้: ยังไม่มี</span>
+    <span class="chip" id="chipTemplate">Template: ยังไม่มี</span>
+  </div>
+  <p class="muted" style="margin:6px 0 0"><span id="tplMemo"></span> <a href="#" id="useBuiltin" class="hidden">กลับไปใช้ Template ในตัว</a></p>
 </section>
 
 <div id="form" class="hidden">
 <section>
-  <h2><span class="n">2</span>ข้อมูล Shipment (ตรวจ / แก้ได้)</h2>
-  <div class="grid">
-    <label>Booking No. <input id="f_booking"></label>
-    <label>Invoice No. <input id="f_invoice"></label>
-    <label>Vessel / Voyage (SI ช่อง Ocean Vessel) <input id="f_vessel"></label>
-    <label>Port of Loading <input id="f_pol"></label>
-    <label>Port of Discharge <input id="f_pod"></label>
-    <label>Place of Delivery <input id="f_del"></label>
-    <label>Shipping Line <input id="f_line" readonly></label>
-    <label>CY Cut <input id="f_cycut" readonly></label>
-    <label>ETD / ETA <input id="f_etd" readonly></label>
-    <label>Commodity (จาก Booking) <input id="f_commodity" readonly></label>
-    <label>Description (SI) <input id="f_desc"></label>
-    <label>SI No. / Ship code <input id="f_sino" readonly></label>
+  <h2><span class="n">2</span>ข้อมูลตู้ (ทีมตู้เป็นคนกรอก)</h2>
+  <div class="status wait" id="teamStatus"></div>
+  <div class="handoff">
+    <div class="step"><b>① ส่งใบขอข้อมูลตู้</b><span class="muted">ไฟล์ Excel ที่ใส่ข้อมูล Booking ไว้แล้ว ทีมกรอกแค่ช่องสีเหลือง</span>
+      <button id="btnRequest" type="button">ดาวน์โหลดใบขอข้อมูลตู้</button></div>
+    <div class="step"><b>② ทีมกรอกแล้วส่งกลับ</b><span class="muted">Container No. · Seal No. · Tare weight (kg) ทางอีเมล หรือ LINE</span></div>
+    <div class="step"><b>③ นำข้อมูลเข้า</b><span class="muted">ลากไฟล์ที่ได้กลับมาวางในข้อ 1 หรือวางข้อความจาก LINE ด้านล่าง</span></div>
   </div>
-</section>
-
-<section>
-  <h2><span class="n">3</span>คู่ค้า (ค่าเริ่มต้นจาก Template — แก้ได้ บรรทัดละช่อง สูงสุด 4 บรรทัด)</h2>
-  <div class="parties">
-    <label>Consignee <textarea id="p_consignee" rows="4" wrap="off"></textarea></label>
-    <label>Notify Party <textarea id="p_notify" rows="4" wrap="off"></textarea></label>
-    <label>Delivery Agent <textarea id="p_agent" rows="4" wrap="off"></textarea></label>
-  </div>
-</section>
-
-<section>
-  <h2><span class="n">4</span>รายการตู้</h2>
-  <div class="row" style="margin-bottom:8px">
-    <span class="muted" id="ctrInfo"></span>
-    <span style="flex:1"></span>
-    <button id="addRow" type="button">+ เพิ่มตู้</button>
-    <button id="delRow" type="button">− ลบตู้สุดท้าย</button>
+  <details id="pasteBox">
+    <summary>วางข้อความจาก LINE / อีเมล (เช่น "TXGU7786137 YMAW745793 3700" บรรทัดละตู้)</summary>
+    <textarea id="pasteText" rows="4" placeholder="TXGU7786137  YMAW745793  3700&#10;TIIU6729648  YMAW745712  3750"></textarea>
+    <div class="row" style="margin-top:6px"><button id="btnPaste" type="button">นำเข้าข้อความ</button><span class="muted" id="pasteResult"></span></div>
+  </details>
+  <div class="row" style="margin:6px 0">
+    <span class="muted" id="ctrInfo"></span><span class="spacer"></span>
+    <button id="addRow" type="button">+ เพิ่มตู้</button><button id="delRow" type="button">− ลบตู้สุดท้าย</button>
   </div>
   <div class="tablewrap">
-  <table>
+  <table class="ctr">
     <thead><tr>
-      <th>#</th><th>Container No.</th><th>Seal No.</th><th>Type</th>
-      <th>Pieces</th><th>Cargo kg</th><th>CBM</th><th>Tare kg</th><th>VGM kg</th><th>วันชั่ง</th>
+      <th>#</th><th class="team">Container No.</th><th class="team">Seal No.</th><th class="team">Tare kg</th><th>Type</th>
+      <th>Pieces</th><th>Cargo kg</th><th>CBM</th><th>VGM kg</th><th>วันชั่ง</th>
     </tr></thead>
     <tbody id="ctrBody"></tbody>
     <tfoot><tr id="ctrFoot"></tr></tfoot>
@@ -134,16 +151,51 @@ button:disabled{opacity:.5;cursor:not-allowed}
 </section>
 
 <section>
-  <h2><span class="n">5</span>ตรวจสอบ และดาวน์โหลด</h2>
+  <h2><span class="n">3</span>ข้อมูล Shipment (จาก Booking — ตรวจ / แก้ได้)</h2>
+  <div class="grid">
+    <label>Booking No. <input id="f_booking"></label>
+    <label>Invoice No. <input id="f_invoice"></label>
+    <label>Vessel / Voyage <input id="f_vessel"></label>
+    <label>Port of Loading <input id="f_pol"></label>
+    <label>Port of Discharge <input id="f_pod"></label>
+    <label>Place of Delivery <input id="f_del"></label>
+    <label>Description <input id="f_desc"></label>
+    <label>Shipping Line <input id="f_line" readonly></label>
+    <label>CY Cut <input id="f_cycut" readonly></label>
+    <label>ETD / ETA <input id="f_etd" readonly></label>
+    <label>Commodity <input id="f_commodity" readonly></label>
+    <label>SI No. / Ship code <input id="f_sino" readonly></label>
+  </div>
+  <details>
+    <summary>คู่ค้า: Consignee / Notify / Agent (ค่าจาก Template)</summary>
+    <div class="parties">
+      <label>Consignee <textarea id="p_consignee" rows="4" wrap="off"></textarea></label>
+      <label>Notify Party <textarea id="p_notify" rows="4" wrap="off"></textarea></label>
+      <label>Delivery Agent <textarea id="p_agent" rows="4" wrap="off"></textarea></label>
+    </div>
+  </details>
+</section>
+
+<section>
+  <h2><span class="n">4</span>ตรวจสอบ และดาวน์โหลด SI / VGM</h2>
   <ul class="msgs" id="msgs"></ul>
   <div class="row">
-    <label style="flex:1;min-width:260px">ชื่อไฟล์ <input id="f_outname"></label>
+    <label style="flex:1;min-width:240px">ชื่อไฟล์ <input id="f_outname"></label>
     <button class="primary" id="btnBuild" type="button">ดาวน์โหลด SI / VGM</button>
   </div>
 </section>
 </div>
+</div>
 
-</main>
+<aside class="pv">
+  <div class="pvbar">
+    <span id="pvTabs"></span><span class="spacer"></span>
+    <label><input type="checkbox" id="pvHl" checked style="width:auto"> ไฮไลต์ช่องที่กรอก</label>
+    <select id="pvZoom" aria-label="ขนาด"><option value="fit">พอดีกรอบ</option><option value="0.75">75%</option><option value="1">100%</option><option value="1.25">125%</option></select>
+  </div>
+  <div class="stage" id="stage"><div class="empty">Preview ของไฟล์ SI / VGM จะแสดงที่นี่</div></div>
+</aside>
+</div>
 
 <script>/*!
 
@@ -172,27 +224,32 @@ const ATTACH_FIRST = 6, VGM_FIRST = 12, MAX_CTR = 15; // VGM table rows 12-26 li
 const DEFAULT_TARE = { "40HQ":3700, "40GP":3700, "20GP":2200 };
 const PORT_NAMES = { THLCH:"LAEM CHABANG, THAILAND", THBKK:"BANGKOK, THAILAND", THLKR:"LAT KRABANG, THAILAND" };
 const AU_STATES = { ADELAIDE:"SA", SYDNEY:"NSW", MELBOURNE:"VIC", BRISBANE:"QLD", FREMANTLE:"WA", PERTH:"WA", DARWIN:"NT", HOBART:"TAS", TOWNSVILLE:"QLD" };
+const REQ_SHEET = "CONTAINER INFO";
 
-let booking = null, templateBuf = null, templateName = "", ctrs = [];
+let booking = null, templateBuf = null, templateName = "", ctrs = [], teamInfo = null;
 
 /* ---------- xlsx helpers ---------- */
 const parseXml = s => new DOMParser().parseFromString(s, "application/xml");
 const serXml = d => new XMLSerializer().serializeToString(d);
 function colNum(c){ let n=0; for(const ch of c) n=n*26+ch.charCodeAt(0)-64; return n; }
-function splitRef(r){ const m=/^([A-Z]+)(\d+)$/.exec(r); return [m[1], +m[2]]; }
+function splitRef(r){ const m=/^\$?([A-Z]+)\$?(\d+)$/.exec(r); return [m[1], +m[2]]; }
 function colName(n){ let s=""; while(n>0){ const m=(n-1)%26; s=String.fromCharCode(65+m)+s; n=(n-m-1)/26; } return s; }
+const xmlEsc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 
 async function sheetPaths(zip){
   const wb = parseXml(await zip.file("xl/workbook.xml").async("string"));
   const rels = parseXml(await zip.file("xl/_rels/workbook.xml.rels").async("string"));
   const target = {};
   for (const r of rels.getElementsByTagName("Relationship")) target[r.getAttribute("Id")] = r.getAttribute("Target");
+  const prints = {};
+  for (const d of wb.getElementsByTagName("definedName"))
+    if (d.getAttribute("name") === "_xlnm.Print_Area") prints[d.getAttribute("localSheetId")] = d.textContent.split("!").pop().replace(/\$/g,"").split(",")[0];
   const out = [];
-  for (const s of wb.getElementsByTagName("sheet")) {
+  [...wb.getElementsByTagName("sheet")].forEach((s,i) => {
     let t = target[s.getAttributeNS(RNS,"id") || s.getAttribute("r:id")];
     t = t.startsWith("/") ? t.slice(1) : "xl/" + t;
-    out.push({ name: s.getAttribute("name"), path: t });
-  }
+    out.push({ name: s.getAttribute("name"), path: t, printArea: prints[i] || null });
+  });
   return out;
 }
 async function sharedStrings(zip){
@@ -200,28 +257,31 @@ async function sharedStrings(zip){
   const d = parseXml(await f.async("string"));
   return [...d.getElementsByTagName("si")].map(si => [...si.getElementsByTagName("t")].map(t=>t.textContent).join(""));
 }
+function cellValue(c, sst){
+  const t = c.getAttribute("t"), v = c.getElementsByTagName("v")[0];
+  if (t === "inlineStr") return [...c.getElementsByTagName("t")].map(x=>x.textContent).join("");
+  if (!v) return null;
+  if (t === "s") return sst[+v.textContent];
+  if (t === "str" || t === "e") return v.textContent;
+  if (t === "b") return v.textContent === "1";
+  return +v.textContent;
+}
 function readCells(doc, sst){
   const cells = {};
-  for (const c of doc.getElementsByTagName("c")) {
-    const t = c.getAttribute("t"), v = c.getElementsByTagName("v")[0];
-    let val = null;
-    if (t === "s" && v) val = sst[+v.textContent];
-    else if (t === "inlineStr") val = [...c.getElementsByTagName("t")].map(x=>x.textContent).join("");
-    else if (v) val = (t === "str" || t === "e") ? v.textContent : (t === "b" ? v.textContent==="1" : +v.textContent);
-    if (val !== null && val !== "") cells[c.getAttribute("r")] = val;
-  }
+  for (const c of doc.getElementsByTagName("c")) { const val = cellValue(c, sst); if (val !== null && val !== "") cells[c.getAttribute("r")] = val; }
   return cells;
 }
-
-/* ---------- Booking parser (by labels, not fixed cells) ---------- */
-async function parseBooking(buf){
-  const zip = await JSZip.loadAsync(buf);
-  const sheets = await sheetPaths(zip), sst = await sharedStrings(zip);
-  const cells = readCells(parseXml(await zip.file(sheets[0].path).async("string")), sst);
+function rowsOf(cells){
   const rows = {};
   for (const [ref,val] of Object.entries(cells)) { const [c,r]=splitRef(ref); (rows[r] ||= []).push({c:colNum(c), val}); }
   for (const r in rows) rows[r].sort((a,b)=>a.c-b.c);
-  const norm = v => String(v).toUpperCase().replace(/\s+/g," ").trim();
+  return rows;
+}
+const norm = v => String(v).toUpperCase().replace(/\s+/g," ").trim();
+
+/* ---------- Booking parser (by labels, not fixed cells) ---------- */
+function parseBooking(cells, sheetName){
+  const rows = rowsOf(cells);
   const after = label => {
     for (const r in rows) { const row = rows[r]; const i = row.findIndex(x => typeof x.val==="string" && norm(x.val)===label);
       if (i>=0) return row.slice(i+1).map(x=>x.val); }
@@ -229,7 +289,7 @@ async function parseBooking(buf){
   };
   const one = l => { const a = after(l); return a.length ? String(a[0]).trim() : ""; };
   const b = {
-    sheetName: sheets[0].name,
+    sheetName,
     invoice: one("INV. NO:"), booking: one("BOOKING NO:"), customer: after("CUSTOMER:").join(" "),
     finalDest: after("FINAL DESTINATION:").join(" "), trucker: one("TRUCKER/NVOCC:"),
     pol: one("DEPARTURE PORT:"), pod: one("ARRIVAL PORT:"), vessel: one("VESSEL:"), voyage: one("VOYAGE:"),
@@ -258,12 +318,12 @@ async function parseBooking(buf){
     }
   }
   if (!b.total) b.total = b.lines.reduce((t,l)=>({qty:t.qty+l.qty,pcs:t.pcs+l.pcs,kg:t.kg+l.kg,cbm:t.cbm+l.cbm}),{qty:0,pcs:0,kg:0,cbm:0});
-  if (!b.booking && !b.lines.length) throw new Error("ไม่พบข้อมูล Booking ในไฟล์นี้ (หา BOOKING No: / STUFFING DATE ไม่เจอ)");
   return b;
 }
 const MONTHS = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
+const MON = m => MONTHS[m][0] + MONTHS[m].slice(1).toLowerCase();
 function dateText(v){
-  if (typeof v === "number" && v > 20000 && v < 80000) { const d = serialToDate(v); return `${String(d.getUTCDate()).padStart(2,"0")}-${MONTHS[d.getUTCMonth()][0]+MONTHS[d.getUTCMonth()].slice(1).toLowerCase()}-${d.getUTCFullYear()}`; }
+  if (typeof v === "number" && v > 20000 && v < 80000) { const d = serialToDate(v); return `${String(d.getUTCDate()).padStart(2,"0")}-${MON(d.getUTCMonth())}-${d.getUTCFullYear()}`; }
   return String(v).trim();
 }
 function normType(t){ t = t.toUpperCase().trim(); return t.replace(/HC$/,"HQ").replace(/DC$|DV$/,"GP"); }
@@ -274,50 +334,177 @@ function textToIso(s){ // "03-Nov-2026" -> "2026-11-03"
   const mi = MONTHS.indexOf(m[2].toUpperCase()); if (mi<0) return "";
   return `${m[3]}-${String(mi+1).padStart(2,"0")}-${m[1].padStart(2,"0")}`;
 }
+function isoToText(iso){ if (!iso) return ""; const [y,m,d] = iso.split("-"); return `${d}-${MON(+m-1)}-${y}`; }
 
-/* ---------- Template reading (for party defaults) ---------- */
-async function readTemplate(buf){
+/* ---------- File detection ---------- */
+async function openXlsx(buf){
   const zip = await JSZip.loadAsync(buf);
   const sheets = await sheetPaths(zip), sst = await sharedStrings(zip);
-  const find = n => sheets.find(s => s.name.trim().toUpperCase().startsWith(n));
-  const si = find("SI DATA"), vgm = find("VGM"), att = find("ATTACH");
-  if (!si || !vgm || !att) throw new Error("Template ต้องมีชีต SI DATA, VGM และ ATTACH SHEET");
-  const cells = readCells(parseXml(await zip.file(si.path).async("string")), sst);
+  return { zip, sheets, sst, cells: async s => readCells(parseXml(await zip.file(s.path).async("string")), sst) };
+}
+async function detect(file){
+  const buf = await file.arrayBuffer(), x = await openXlsx(buf);
+  const names = x.sheets.map(s => norm(s.name));
+  if (names.includes(REQ_SHEET)) return { kind:"team", file, data: parseTeam(await x.cells(x.sheets[names.indexOf(REQ_SHEET)])) };
+  if (["SI DATA","VGM","ATTACH"].every(n => names.some(s => s.startsWith(n)))) return { kind:"template", file, buf };
+  const cells = await x.cells(x.sheets[0]);
+  const b = parseBooking(cells, x.sheets[0].name);
+  if (b.booking || b.lines.length) return { kind:"booking", file, data: b };
+  throw new Error(`ไม่รู้จักไฟล์ ${file.name} (ไม่ใช่ Booking Request, Template SI/VGM หรือไฟล์ข้อมูลตู้)`);
+}
+
+/* ---------- Template reading (party defaults) ---------- */
+async function readTemplate(buf){
+  const x = await openXlsx(buf);
+  const si = x.sheets.find(s => norm(s.name).startsWith("SI DATA"));
+  const cells = await x.cells(si);
   const lines = refs => refs.map(r => cells[r] ? String(cells[r]) : "").join("\n").replace(/\n+$/,"");
-  return { consignee: lines(SI.consignee), notify: lines(SI.notify), agent: lines(SI.agent), desc: String(cells[SI.desc]||"").trim(),
-           pod: cells[SI.pod]||"", del: cells[SI.del]||"" };
+  return { consignee: lines(SI.consignee), notify: lines(SI.notify), agent: lines(SI.agent), desc: String(cells[SI.desc]||"").trim() };
+}
+
+/* ---------- Container info request (to / from the container team) ---------- */
+function xlsxPackage(sheetName, sheetXml, stylesXml){
+  const zip = new JSZip();
+  zip.file("[Content_Types].xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>`);
+  zip.file("_rels/.rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`);
+  zip.file("xl/workbook.xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="${NS}" xmlns:r="${RNS}"><sheets><sheet name="${xmlEsc(sheetName)}" sheetId="1" r:id="rId1"/></sheets></workbook>`);
+  zip.file("xl/_rels/workbook.xml.rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`);
+  zip.file("xl/styles.xml", stylesXml);
+  zip.file("xl/worksheets/sheet1.xml", sheetXml);
+  return zip.generateAsync({ type:"blob", compression:"DEFLATE", mimeType:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+}
+// style ids: 1 title, 2 label, 3 value, 4 note, 5 header, 6 read-only text, 7 input text, 8 input number, 9 read-only #,##0, 10 read-only 0.000
+const REQ_STYLES = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="${NS}"><numFmts count="1"><numFmt numFmtId="164" formatCode="0.000"/></numFmts>`
+ + `<fonts count="4"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="14"/><name val="Calibri"/></font><font><i/><sz val="10"/><color rgb="FF7F6000"/><name val="Calibri"/></font></fonts>`
+ + `<fills count="5"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFFFF2CC"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFD9E1F2"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFF2F2F2"/></patternFill></fill></fills>`
+ + `<borders count="2"><border/><border><left style="thin"><color rgb="FFA6A6A6"/></left><right style="thin"><color rgb="FFA6A6A6"/></right><top style="thin"><color rgb="FFA6A6A6"/></top><bottom style="thin"><color rgb="FFA6A6A6"/></bottom></border></borders>`
+ + `<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="11">`
+ + `<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>`
+ + `<xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1"/>`
+ + `<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/>`
+ + `<xf numFmtId="49" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"><alignment horizontal="left"/></xf>`
+ + `<xf numFmtId="0" fontId="3" fillId="0" borderId="0" xfId="0" applyFont="1"/>`
+ + `<xf numFmtId="0" fontId="1" fillId="3" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>`
+ + `<xf numFmtId="49" fontId="0" fillId="4" borderId="1" xfId="0" applyNumberFormat="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center"/></xf>`
+ + `<xf numFmtId="49" fontId="0" fillId="2" borderId="1" xfId="0" applyNumberFormat="1" applyFill="1" applyBorder="1" applyProtection="1"><protection locked="0"/></xf>`
+ + `<xf numFmtId="3" fontId="0" fillId="2" borderId="1" xfId="0" applyNumberFormat="1" applyFill="1" applyBorder="1" applyProtection="1"><protection locked="0"/></xf>`
+ + `<xf numFmtId="3" fontId="0" fillId="4" borderId="1" xfId="0" applyNumberFormat="1" applyFill="1" applyBorder="1"/>`
+ + `<xf numFmtId="164" fontId="0" fillId="4" borderId="1" xfId="0" applyNumberFormat="1" applyFill="1" applyBorder="1"/>`
+ + `</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;
+
+const REQ_FIRST = 12; // first data row in the request sheet
+function requestXml(){
+  const rows = [], cell = (ref, v, s) => v === "" || v === null || v === undefined ? `<c r="${ref}" s="${s}"/>`
+    : typeof v === "number" ? `<c r="${ref}" s="${s}"><v>${v}</v></c>`
+    : `<c r="${ref}" s="${s}" t="inlineStr"><is><t xml:space="preserve">${xmlEsc(v)}</t></is></c>`;
+  const row = (r, cells, ht) => rows.push(`<row r="${r}"${ht?` ht="${ht}" customHeight="1"`:""}>${cells.join("")}</row>`);
+  const b = booking;
+  row(1, [cell("A1","CONTAINER INFO / ใบขอข้อมูลตู้",1)], 22);
+  const info = [["Booking No.", $("f_booking").value], ["Invoice No.", $("f_invoice").value], ["Vessel / Voyage", $("f_vessel").value],
+    ["Port of Discharge", $("f_pod").value], ["Stuffing date", b.lines[0] ? b.lines[0].date : ""], ["CY Cut", b.cyCut],
+    ["Containers", summary()]];
+  info.forEach(([k,v],i) => row(3+i, [cell(`A${3+i}`,k,2), cell(`C${3+i}`,String(v),3)]));
+  row(10, [cell("A10","กรุณากรอกเฉพาะช่องสีเหลือง (Container No. · Seal No. · Tare weight) แล้วส่งไฟล์นี้กลับ — อย่าเปลี่ยนชื่อชีต",4)]);
+  row(11, ["No.","Type","Container No.","Seal No.","Tare weight (kg)","Pieces","Cargo kg","CBM"].map((h,i)=>cell(colName(i+1)+"11",h,5)), 30);
+  ctrs.forEach((c,i) => { const r = REQ_FIRST+i;
+    row(r, [cell("A"+r,i+1,6), cell("B"+r,c.type,6), cell("C"+r,c.no,7), cell("D"+r,c.seal,7), cell("E"+r,c.tareSet ? num(c.tare) : "",8),
+            cell("F"+r,c.pcs===""?"":num(c.pcs),9), cell("G"+r,c.kg===""?"":num(c.kg),9), cell("H"+r,c.cbm===""?"":num(c.cbm),10)]); });
+  const last = REQ_FIRST + ctrs.length - 1;
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="${NS}" xmlns:r="${RNS}">`
+    + `<sheetViews><sheetView workbookViewId="0" tabSelected="1"><selection activeCell="C${REQ_FIRST}" sqref="C${REQ_FIRST}"/></sheetView></sheetViews>`
+    + `<cols><col min="1" max="1" width="7" customWidth="1"/><col min="2" max="2" width="10" customWidth="1"/><col min="3" max="3" width="18" customWidth="1"/><col min="4" max="4" width="16" customWidth="1"/><col min="5" max="5" width="14" customWidth="1"/><col min="6" max="8" width="11" customWidth="1"/></cols>`
+    + `<sheetData>${rows.join("")}</sheetData>`
+    + `<sheetProtection sheet="1" objects="1" scenarios="1" formatColumns="0" formatRows="0"/>`
+    + `<dataValidations count="2">`
+    + `<dataValidation type="textLength" operator="equal" allowBlank="1" showErrorMessage="1" errorTitle="Container No." error="ต้องเป็น 4 ตัวอักษร + 7 ตัวเลข เช่น ABCU1234567" sqref="C${REQ_FIRST}:C${last}"><formula1>11</formula1></dataValidation>`
+    + `<dataValidation type="whole" allowBlank="1" showErrorMessage="1" errorTitle="Tare weight" error="ใส่เป็นตัวเลข kg ระหว่าง 1,000 - 10,000" sqref="E${REQ_FIRST}:E${last}"><formula1>1000</formula1><formula2>10000</formula2></dataValidation>`
+    + `</dataValidations><pageMargins left="0.5" right="0.5" top="0.75" bottom="0.75" header="0.3" footer="0.3"/><pageSetup paperSize="9" orientation="landscape"/></worksheet>`;
+}
+function parseTeam(cells){
+  const rows = rowsOf(cells), nums = Object.keys(rows).map(Number).sort((a,b)=>a-b);
+  let bk = "";
+  for (const r of nums) { const i = rows[r].findIndex(x => norm(x.val)==="BOOKING NO."); if (i>=0 && rows[r][i+1]) bk = String(rows[r][i+1].val).trim(); }
+  const hdr = nums.find(r => rows[r].some(x => norm(x.val).startsWith("CONTAINER NO")));
+  if (!hdr) throw new Error("ไม่พบหัวตาราง Container No. ในไฟล์ข้อมูลตู้");
+  const col = {};
+  for (const x of rows[hdr]) { const h = norm(x.val);
+    if (h==="NO.") col.idx=x.c; else if (h.startsWith("CONTAINER NO")) col.no=x.c; else if (h.startsWith("SEAL")) col.seal=x.c; else if (h.startsWith("TARE")) col.tare=x.c; }
+  const get = (r,c) => { const x = (rows[r]||[]).find(y=>y.c===c); return x ? x.val : ""; };
+  const list = [];
+  for (const r of nums.filter(r => r > hdr)) {
+    const idx = parseInt(get(r,col.idx)); if (!idx) continue;
+    list.push({ idx, no: cleanNo(get(r,col.no)), seal: String(get(r,col.seal)).trim().toUpperCase(), tare: get(r,col.tare) === "" ? "" : num(get(r,col.tare)) });
+  }
+  return { booking: bk, list };
+}
+const cleanNo = v => String(v).toUpperCase().replace(/[\s\-_.]/g,"");
+function applyTeam(t, source){
+  if (booking && t.booking && t.booking !== $("f_booking").value.trim()
+      && !confirm(`ไฟล์ข้อมูลตู้เป็นของ Booking ${t.booking} แต่ตอนนี้ทำ Booking ${$("f_booking").value} อยู่\nต้องการนำเข้าต่อหรือไม่?`)) return 0;
+  let n = 0;
+  for (const r of t.list) {
+    while (ctrs.length < r.idx && ctrs.length < MAX_CTR) ctrs.push(blankCtr());
+    const c = ctrs[r.idx-1]; if (!c) continue;
+    if (r.no) { c.no = r.no; c.fromTeam.no = true; }
+    if (r.seal) { c.seal = r.seal; c.fromTeam.seal = true; }
+    if (r.tare !== "") { c.tare = r.tare; c.tareSet = true; c.fromTeam.tare = true; }
+    if (r.no || r.seal || r.tare !== "") n++;
+  }
+  teamInfo = { source, at: new Date(), count: n };
+  renderCtrs();
+  return n;
+}
+function parsePaste(text){
+  const list = [];
+  for (const line of text.split(/\r?\n/)) {
+    const joined = line.toUpperCase();
+    const m = /([A-Z]{4})[\s-]?(\d{6})[\s-]?(\d)/.exec(joined);
+    if (!m) continue;
+    const no = m[1]+m[2]+m[3], rest = joined.replace(m[0]," ").split(/[\s;|\t]+|,(?!\d{3}\b)/).filter(Boolean);
+    let tare = "", seal = "";
+    for (const t of rest) { const v = num(t);
+      if (!tare && /^[\d,]+(\.\d+)?$/.test(t) && v >= 1000 && v <= 10000) tare = v;
+      else if (!seal && /[A-Z0-9]{4,}/.test(t) && !/^(KG|KGS|TARE|SEAL)$/.test(t)) seal = t.replace(/[^A-Z0-9]/g,""); }
+    list.push({ idx: list.length+1, no, seal, tare });
+  }
+  return { booking: "", list };
 }
 
 /* ---------- UI ---------- */
-function setupDrop(dropId, inputId, onFile){
-  const drop = $(dropId), input = $(inputId);
-  drop.addEventListener("click", () => input.click());
-  drop.addEventListener("keydown", e => { if (e.key==="Enter"||e.key===" ") input.click(); });
-  drop.addEventListener("dragover", e => { e.preventDefault(); drop.classList.add("over"); });
-  drop.addEventListener("dragleave", () => drop.classList.remove("over"));
-  drop.addEventListener("drop", e => { e.preventDefault(); drop.classList.remove("over"); if (e.dataTransfer.files[0]) onFile(e.dataTransfer.files[0]); });
-  input.addEventListener("change", () => { if (input.files[0]) onFile(input.files[0]); input.value=""; });
+const drop = $("drop"), fileInput = $("fileInput");
+drop.addEventListener("click", () => fileInput.click());
+drop.addEventListener("keydown", e => { if (e.key==="Enter"||e.key===" ") fileInput.click(); });
+drop.addEventListener("dragover", e => { e.preventDefault(); drop.classList.add("over"); });
+drop.addEventListener("dragleave", () => drop.classList.remove("over"));
+drop.addEventListener("drop", e => { e.preventDefault(); drop.classList.remove("over"); handleFiles([...e.dataTransfer.files]); });
+fileInput.addEventListener("change", () => { handleFiles([...fileInput.files]); fileInput.value=""; });
+
+async function handleFiles(files){
+  const found = [];
+  for (const f of files) { try { found.push(await detect(f)); } catch(e) { alert(e.message); } }
+  const order = { template:0, booking:1, team:2 };
+  found.sort((a,b) => order[a.kind]-order[b.kind]);
+  for (const x of found) {
+    try {
+      if (x.kind === "template") { await loadTemplate(x.buf, x.file.name);
+        try { localStorage.setItem("sivgm_tpl", JSON.stringify({ name:x.file.name, data: b64(x.buf) })); } catch(_){} }
+      else if (x.kind === "booking") { booking = x.data; $("chipBooking").textContent = "Booking: " + x.file.name; $("chipBooking").className = "chip done"; fillFromBooking(); }
+      else if (x.kind === "team") {
+        if (!booking) { alert("วาง Booking Request ก่อน แล้วค่อยวางไฟล์ข้อมูลตู้"); continue; }
+        applyTeam(x.data, x.file.name);
+      }
+    } catch(e) { alert(`อ่านไฟล์ ${x.file.name} ไม่ได้: ${e.message}`); }
+  }
 }
-setupDrop("dropBooking","fileBooking", async f => {
-  try { booking = await parseBooking(await f.arrayBuffer()); $("nameBooking").textContent = f.name; $("dropBooking").classList.add("done"); fillFromBooking(); }
-  catch(e){ alert("อ่าน Booking ไม่ได้: " + e.message); }
-});
-setupDrop("dropTemplate","fileTemplate", async f => {
-  try { await loadTemplate(await f.arrayBuffer(), f.name);
-        try { localStorage.setItem("sivgm_tpl", JSON.stringify({ name:f.name, data: b64(templateBuf) })); } catch(_){} }
-  catch(e){ alert("อ่าน Template ไม่ได้: " + e.message); }
-});
 async function loadTemplate(buf, name, builtin){
   const t = await readTemplate(buf);
-  templateBuf = buf; templateName = name;
-  $("nameTemplate").textContent = name; $("dropTemplate").classList.add("done");
+  templateBuf = buf; templateName = name; previewStyles = null;
+  $("chipTemplate").textContent = "Template: " + name; $("chipTemplate").className = "chip done";
   $("p_consignee").value = t.consignee; $("p_notify").value = t.notify; $("p_agent").value = t.agent;
-  if (!$("f_desc").value) $("f_desc").value = t.desc;
-  $("tplMemo").textContent = builtin
-    ? "ใช้ Template ในตัวอยู่ วางแค่ Booking Request ได้เลย (ถ้าปลายทางอื่นให้ลากไฟล์ Template มาวางแทน)"
-    : "Template นี้จะถูกจำไว้ในเบราว์เซอร์นี้ ครั้งหน้าไม่ต้องเลือกใหม่";
-  $("useBuiltin").classList.toggle("hidden", builtin || !EMBEDDED_TPL);
-  showForm();
+  $("f_desc").value = t.desc;
+  $("tplMemo").textContent = builtin ? "ใช้ Template ในตัว — วางแค่ Booking Request ได้เลย" : "Template นี้จะถูกจำไว้ในเบราว์เซอร์นี้";
+  $("useBuiltin").classList.toggle("hidden", !!builtin || !EMBEDDED_TPL);
+  refresh();
 }
 function b64(buf){ let s=""; const u=new Uint8Array(buf); for (let i=0;i<u.length;i+=0x8000) s+=String.fromCharCode.apply(null,u.subarray(i,i+0x8000)); return btoa(s); }
 function unb64(s){ const b=atob(s), u=new Uint8Array(b.length); for (let i=0;i<b.length;i++) u[i]=b.charCodeAt(i); return u.buffer; }
@@ -336,33 +523,33 @@ function fillFromBooking(){
   $("f_pod").value = podText(b.pod); $("f_del").value = podText(b.pod);
   $("f_line").value = b.line; $("f_cycut").value = b.cyCut; $("f_etd").value = `${b.etd} / ${b.eta}`;
   $("f_commodity").value = b.commodity; $("f_sino").value = [b.siNo, b.shipCode].filter(Boolean).join(" / ");
-  ctrs = [];
-  for (const l of b.lines) for (let i=0;i<l.qty;i++) ctrs.push({
-    no:"", seal:"", type:l.type, pcs: l.qty===1 ? l.pcs : "", kg: l.qty===1 ? l.kg : "", cbm: l.qty===1 ? l.cbm : "",
-    tare: DEFAULT_TARE[l.type] ?? "", date: textToIso(l.date) });
+  ctrs = []; teamInfo = null;
+  for (const l of b.lines) for (let i=0;i<l.qty;i++) ctrs.push(newCtr({ type:l.type,
+    pcs: l.qty===1 ? l.pcs : "", kg: l.qty===1 ? l.kg : "", cbm: l.qty===1 ? l.cbm : "", date: textToIso(l.date) }));
   if (!ctrs.length) ctrs.push(blankCtr());
-  renderCtrs(); showForm();
-}
-function blankCtr(){ const p = ctrs[ctrs.length-1] || {}; return { no:"", seal:"", type:p.type||"40HQ", pcs:"", kg:"", cbm:"", tare:p.tare ?? 3700, date:p.date||"" }; }
-function showForm(){
-  if (!booking || !templateBuf) return;
   $("form").classList.remove("hidden");
+  setOutName();
+  renderCtrs();
+}
+function newCtr(o){ const type = o.type || "40HQ";
+  return { no:"", seal:"", type, pcs:"", kg:"", cbm:"", tare: DEFAULT_TARE[type] ?? 3700, tareSet:false, date:"", fromTeam:{}, ...o }; }
+function blankCtr(){ const p = ctrs[ctrs.length-1] || {}; return newCtr({ type:p.type, date:p.date||"" }); }
+function setOutName(){
   const city = $("f_pod").value.split(",")[0].trim() || "DEST";
   $("f_outname").value = `SHINKI_SRAU_VGM_SI_BKG._${$("f_booking").value}_${city}.xlsx`;
-  validate();
 }
-const FIELDS = [["no","text"],["seal","text"],["type","text"],["pcs","num"],["kg","num"],["cbm","num"],["tare","num"]];
+const COLS = [["no","text",1],["seal","text",1],["tare","num",1],["type","text"],["pcs","num"],["kg","num"],["cbm","num"]];
 function renderCtrs(){
   const body = $("ctrBody"); body.innerHTML = "";
   ctrs.forEach((c,i) => {
     const tr = document.createElement("tr");
-    tr.innerHTML = `<td>${i+1}</td>` + FIELDS.map(([k,t]) =>
-      `<td class="${t==="num"?"num":""}"><input data-i="${i}" data-k="${k}" ${t==="num"?'inputmode="decimal"':''} value="${esc(c[k])}" ${k==="no"?'placeholder="ABCU1234567"':''}></td>`).join("")
+    tr.innerHTML = `<td>${i+1}</td>` + COLS.map(([k,t]) =>
+      `<td class="${t==="num"?"num":""}"><input data-i="${i}" data-k="${k}" ${t==="num"?'inputmode="decimal"':''} class="${c.fromTeam[k]?"fromteam":""}" value="${esc(c[k])}" ${k==="no"?'placeholder="รอทีมตู้"':k==="seal"?'placeholder="รอทีมตู้"':''} style="${k==="type"?"width:64px":k==="no"||k==="seal"?"min-width:118px":k==="tare"?"min-width:70px":""}"></td>`).join("")
       + `<td class="num" data-vgm="${i}"></td><td><input type="date" data-i="${i}" data-k="date" value="${esc(c.date)}"></td>`;
     body.appendChild(tr);
   });
-  $("ctrInfo").textContent = `Booking ระบุ ${booking ? booking.total.qty : "?"} ตู้ · ในตาราง ${ctrs.length} ตู้ (สูงสุด ${MAX_CTR})`;
-  updateTotals();
+  $("ctrInfo").textContent = `Booking ระบุ ${booking ? booking.total.qty : "?"} ตู้ · ในตาราง ${ctrs.length} ตู้ (สูงสุด ${MAX_CTR}) · ช่องสีเหลือง = ได้จากทีมตู้`;
+  refresh();
 }
 const esc = v => String(v ?? "").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;");
 $("ctrBody").addEventListener("input", e => {
@@ -370,23 +557,49 @@ $("ctrBody").addEventListener("input", e => {
   let v = el.value;
   if (k==="no" || k==="seal" || k==="type") { const up = v.toUpperCase(); if (up!==v){ const p=el.selectionStart; el.value=up; el.setSelectionRange(p,p);} v = up; }
   ctrs[i][k] = v;
+  if (k==="tare") ctrs[i].tareSet = true;
   if (k==="date" && i===0) ctrs.forEach((c,j)=>{ if (j>0 && !c.date) { c.date=v; const d=document.querySelector(`input[data-i="${j}"][data-k="date"]`); if (d) d.value=v; } });
-  updateTotals();
+  refresh();
 });
 $("addRow").onclick = () => { if (ctrs.length>=MAX_CTR) return alert(`Template รองรับสูงสุด ${MAX_CTR} ตู้`); ctrs.push(blankCtr()); renderCtrs(); };
 $("delRow").onclick = () => { if (ctrs.length>1) { ctrs.pop(); renderCtrs(); } };
-document.querySelectorAll("#form input, #form textarea").forEach(el => el.addEventListener("input", () => { if (el.id==="f_booking"||el.id==="f_pod") showForm(); else validate(); }));
+document.querySelectorAll("#form input:not([data-k]), #form textarea:not(#pasteText)").forEach(el => el.addEventListener("input", () => {
+  if (el.id==="f_booking"||el.id==="f_pod") setOutName(); refresh(); }));
+$("btnPaste").onclick = () => {
+  const t = parsePaste($("pasteText").value);
+  if (!t.list.length) { $("pasteResult").textContent = "ไม่พบเลขตู้ในข้อความ"; return; }
+  const n = applyTeam(t, "ข้อความที่วาง");
+  $("pasteResult").textContent = `นำเข้า ${n} ตู้แล้ว`;
+};
+$("btnRequest").onclick = async () => {
+  const blob = await xlsxPackage(REQ_SHEET, requestXml(), REQ_STYLES);
+  download(blob, `CONTAINER_INFO_${$("f_booking").value || "BOOKING"}.xlsx`);
+};
+function download(blob, name){
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+}
 
 const num = v => { const n = parseFloat(String(v).replace(/,/g,"")); return isNaN(n) ? 0 : n; };
 function sums(){ return ctrs.reduce((t,c)=>({pcs:t.pcs+num(c.pcs),kg:t.kg+num(c.kg),cbm:t.cbm+num(c.cbm)}),{pcs:0,kg:0,cbm:0}); }
-function updateTotals(){
-  ctrs.forEach((c,i)=>{ const td=document.querySelector(`td[data-vgm="${i}"]`); if (td) td.textContent = (num(c.kg)+num(c.tare)).toLocaleString("en-US"); });
-  const s = sums();
-  $("ctrFoot").innerHTML = `<td></td><td colspan="3">รวม (Booking: ${booking? `${fmtInt(booking.total.pcs)} pcs · ${fmtInt(booking.total.kg)} kg · ${booking.total.cbm.toFixed(3)} CBM` : "-"})</td>`
-    + `<td class="num">${fmtInt(s.pcs)}</td><td class="num">${fmtInt(s.kg)}</td><td class="num">${s.cbm.toFixed(3)}</td><td colspan="3"></td>`;
-  validate();
-}
+function summary(){ const t = {}; ctrs.forEach(c => { const k = (c.type||"40HQ").trim(); t[k] = (t[k]||0)+1; }); return Object.entries(t).map(([k,q]) => `${q}x${k}`).join(" + "); }
 const fmtInt = n => Math.round(n).toLocaleString("en-US");
+
+function refresh(){
+  if (booking) {
+    ctrs.forEach((c,i)=>{ const td=document.querySelector(`td[data-vgm="${i}"]`); if (td) td.textContent = (num(c.kg)+num(c.tare)).toLocaleString("en-US"); });
+    const s = sums();
+    $("ctrFoot").innerHTML = `<td></td><td colspan="4" class="muted">รวม · Booking: ${fmtInt(booking.total.pcs)} pcs · ${fmtInt(booking.total.kg)} kg · ${booking.total.cbm.toFixed(3)} CBM</td>`
+      + `<td class="num">${fmtInt(s.pcs)}</td><td class="num">${fmtInt(s.kg)}</td><td class="num">${s.cbm.toFixed(3)}</td><td colspan="2"></td>`;
+    const got = ctrs.filter(c => c.no && c.seal).length;
+    const st = $("teamStatus");
+    if (got === ctrs.length) { st.className = "status done"; st.textContent = `✔ ได้ข้อมูลตู้ครบ ${got}/${ctrs.length} ตู้` + (teamInfo ? ` · จาก ${teamInfo.source} เวลา ${teamInfo.at.toLocaleTimeString("th-TH",{hour:"2-digit",minute:"2-digit"})}` : ""); }
+    else { st.className = "status wait"; st.textContent = `⏳ รอข้อมูลจากทีมตู้ — ได้แล้ว ${got}/${ctrs.length} ตู้`; }
+    $("chipTeam").textContent = `ข้อมูลตู้: ${got}/${ctrs.length}`; $("chipTeam").className = "chip " + (got === ctrs.length ? "done" : "wait");
+    validate();
+  }
+  schedulePreview();
+}
 
 /* ---------- Validation ---------- */
 function isoCheckDigit(no){
@@ -397,8 +610,9 @@ function isoCheckDigit(no){
   return (sum % 11) % 10;
 }
 function validate(){
-  if (!booking || !templateBuf) return [];
+  if (!booking) return [];
   const out = [], E = t => out.push(["err",t]), W = t => out.push(["warn",t]);
+  if (!templateBuf) E("ยังไม่มี Template SI/VGM");
   if (!$("f_booking").value.trim()) E("ยังไม่มี Booking No.");
   if (!$("f_invoice").value.trim()) E("ยังไม่มี Invoice No.");
   if (!$("f_vessel").value.trim()) E("ยังไม่มีชื่อเรือ / เที่ยว");
@@ -409,30 +623,31 @@ function validate(){
   const seen = {};
   document.querySelectorAll('#ctrBody input').forEach(el => el.classList.remove("bad"));
   const bad = (i,k) => { const el=document.querySelector(`input[data-i="${i}"][data-k="${k}"]`); if (el) el.classList.add("bad"); };
+  const cy = textToIso(booking.cyCut);
   ctrs.forEach((c,i) => {
-    const n = i+1, no = c.no.replace(/\s|-/g,"");
-    if (!no) { E(`ตู้ #${n}: ยังไม่ใส่เลขตู้`); bad(i,"no"); }
+    const n = i+1, no = cleanNo(c.no);
+    if (!no) E(`ตู้ #${n}: รอเลขตู้จากทีมตู้`);
     else if (!/^[A-Z]{3}[UJZ]\d{7}$/.test(no)) { E(`ตู้ #${n}: รูปแบบเลขตู้ ${no} ไม่ถูกต้อง (ต้องเป็น 4 ตัวอักษร + 7 ตัวเลข)`); bad(i,"no"); }
-    else if (isoCheckDigit(no) !== +no[10]) { W(`ตู้ #${n}: เลขตู้ ${no} check digit ไม่ถูก (ควรลงท้ายด้วย ${isoCheckDigit(no)}) — ตรวจว่าพิมพ์ถูกไหม`); bad(i,"no"); }
+    else if (isoCheckDigit(no) !== +no[10]) { W(`ตู้ #${n}: เลขตู้ ${no} check digit ไม่ถูก (ควรลงท้ายด้วย ${isoCheckDigit(no)}) — ตรวจกับทีมตู้`); bad(i,"no"); }
     if (no) { if (seen[no]) { E(`เลขตู้ ${no} ซ้ำ`); bad(i,"no"); } seen[no]=1; }
-    if (!c.seal.trim()) { E(`ตู้ #${n}: ยังไม่ใส่เลขซีล`); bad(i,"seal"); }
+    if (!c.seal.trim()) E(`ตู้ #${n}: รอเลขซีลจากทีมตู้`);
+    if (!num(c.tare)) { E(`ตู้ #${n}: ยังไม่มี Tare`); bad(i,"tare"); }
+    else if (!c.tareSet) W(`ตู้ #${n}: Tare ยังเป็นค่าเริ่มต้น ${fmtInt(num(c.tare))} kg — รอค่าจริงจากทีมตู้`);
     if (!num(c.pcs)) { E(`ตู้ #${n}: ยังไม่ใส่จำนวน Pieces`); bad(i,"pcs"); }
     if (!num(c.kg)) { E(`ตู้ #${n}: ยังไม่ใส่น้ำหนักสินค้า`); bad(i,"kg"); }
     if (!num(c.cbm)) { E(`ตู้ #${n}: ยังไม่ใส่ CBM`); bad(i,"cbm"); }
-    if (!num(c.tare)) { E(`ตู้ #${n}: ยังไม่ใส่ Tare`); bad(i,"tare"); }
     if (!c.date) { E(`ตู้ #${n}: ยังไม่ใส่วันชั่ง`); bad(i,"date"); }
-    const cy = textToIso(booking.cyCut);
-    if (c.date && cy && c.date > cy) W(`ตู้ #${n}: วันชั่ง ${c.date} เลย CY Cut (${booking.cyCut})`);
+    if (c.date && cy && c.date > cy) W(`ตู้ #${n}: วันชั่ง ${isoToText(c.date)} เลย CY Cut (${booking.cyCut})`);
   });
   const s = sums(), t = booking.total;
   if (t.pcs && Math.round(s.pcs) !== Math.round(t.pcs)) W(`Pieces รวม ${fmtInt(s.pcs)} ≠ Booking ${fmtInt(t.pcs)}`);
   if (t.kg && Math.abs(s.kg - t.kg) > 0.5) W(`น้ำหนักรวม ${fmtInt(s.kg)} kg ≠ Booking ${fmtInt(t.kg)} kg`);
   if (t.cbm && Math.abs(s.cbm - t.cbm) > 0.0005) W(`CBM รวม ${s.cbm.toFixed(3)} ≠ Booking ${t.cbm.toFixed(3)}`);
-  for (const id of ["p_consignee","p_notify","p_agent"]) if ($(id).value.split("\n").length > 4) W(`${id.slice(2)}: เกิน 4 บรรทัด บรรทัดที่เกินจะถูกตัด`);
+  for (const [id,label] of [["p_consignee","Consignee"],["p_notify","Notify"],["p_agent","Agent"]]) if ($(id).value.split("\n").length > 4) W(`${label}: เกิน 4 บรรทัด บรรทัดที่เกินจะถูกตัด`);
   const errs = out.filter(m=>m[0]==="err").length;
   if (!out.length) out.push(["ok","ข้อมูลครบ พร้อมดาวน์โหลด"]);
   $("msgs").innerHTML = out.map(([k,t]) => `<li class="${k}">${k==="err"?"✖":k==="warn"?"⚠":"✔"} ${esc(t)}</li>`).join("");
-  $("btnBuild").textContent = errs ? `ดาวน์โหลด (ยังมี ${errs} จุดต้องแก้)` : "ดาวน์โหลด SI / VGM";
+  $("btnBuild").textContent = errs ? `ดาวน์โหลด (ยังขาด ${errs} จุด)` : "ดาวน์โหลด SI / VGM";
   return out;
 }
 
@@ -449,7 +664,8 @@ function shiftFormula(f, dr, dc){
 }
 
 class Sheet {
-  constructor(doc){ this.doc = doc; this.data = doc.getElementsByTagName("sheetData")[0];
+  constructor(doc, sst){ this.doc = doc; this.sst = sst; this.touched = new Set();
+    this.data = doc.getElementsByTagName("sheetData")[0];
     this.rows = {}; for (const r of this.data.getElementsByTagName("row")) this.rows[r.getAttribute("r")] = r;
     this.cells = {}; for (const c of this.data.getElementsByTagName("c")) this.cells[c.getAttribute("r")] = c;
     this.unshare(); }
@@ -477,9 +693,10 @@ class Sheet {
     row.insertBefore(c, next || null); return this.cells[ref] = c;
   }
   clear(c){ while (c.firstChild) c.removeChild(c.firstChild); c.removeAttribute("t"); }
-  set(ref, val){
+  set(ref, val, mark = true){
     const c = this.cell(ref); this.clear(c);
     if (val === null || val === undefined || val === "") return;
+    if (mark) this.touched.add(ref);
     if (typeof val === "number") { const v = this.doc.createElementNS(NS,"v"); v.textContent = String(val); c.appendChild(v); return; }
     c.setAttribute("t","inlineStr");
     const is = this.doc.createElementNS(NS,"is"), t = this.doc.createElementNS(NS,"t");
@@ -496,12 +713,7 @@ class Sheet {
     else if (typeof val === "boolean") { c.setAttribute("t","b"); val = val ? 1 : 0; }
     v.textContent = String(val); c.appendChild(v);
   }
-  value(ref){ // current literal value (numbers / inline strings written by us / cached)
-    const c = this.cells[ref]; if (!c) return null;
-    if (c.getAttribute("t")==="inlineStr") return c.getElementsByTagName("t")[0].textContent;
-    const v = c.getElementsByTagName("v")[0]; if (!v) return null;
-    return c.getAttribute("t")==="str" ? v.textContent : (c.getAttribute("t")==="s" ? this.sst[+v.textContent] : +v.textContent);
-  }
+  value(ref){ const c = this.cells[ref]; return c ? cellValue(c, this.sst) : null; }
 }
 
 // Recompute cached values for the template's simple formulas so the file
@@ -533,21 +745,23 @@ function recalc(book){
   for (const name in book) for (const ref in book[name].cells) if (book[name].formula(ref) !== null) get(name, ref);
 }
 
-async function build(){
-  const zip = await JSZip.loadAsync(templateBuf);
-  const sheets = await sheetPaths(zip), sst = await sharedStrings(zip);
-  const find = n => sheets.find(s => s.name.trim().toUpperCase().startsWith(n));
+async function buildBook(){
+  const x = await openXlsx(templateBuf);
   const book = {};
-  for (const s of sheets) { const sh = new Sheet(parseXml(await zip.file(s.path).async("string"))); sh.sst = sst; sh.path = s.path; book[s.name] = sh; }
-  const si = book[find("SI DATA").name], vgm = book[find("VGM").name], att = book[find("ATTACH").name];
-
+  for (const s of x.sheets) { const sh = new Sheet(parseXml(await x.zip.file(s.path).async("string")), x.sst); sh.path = s.path; sh.printArea = s.printArea; book[s.name] = sh; }
+  const find = n => x.sheets.find(s => norm(s.name).startsWith(n)).name;
+  const names = { si: find("SI DATA"), vgm: find("VGM"), att: find("ATTACH") };
+  if (booking) fill(book[names.si], book[names.vgm], book[names.att]);
+  recalc(book);
+  return { zip: x.zip, book, names };
+}
+function fill(si, vgm, att){
   const s = sums(), n = ctrs.length;
-  const types = {}; ctrs.forEach(c => { const t = (c.type||"40HQ").trim(); types[t] = (types[t]||0)+1; });
   si.set(SI.booking, /^\d+$/.test($("f_booking").value.trim()) ? +$("f_booking").value.trim() : $("f_booking").value.trim());
   si.set(SI.vessel, $("f_vessel").value.trim());
   si.set(SI.polA, $("f_pol").value.trim() + " "); si.set(SI.polB, $("f_pol").value.trim());
   si.set(SI.pod, $("f_pod").value.trim()); si.set(SI.del, $("f_del").value.trim());
-  si.set(SI.ctrSummary, Object.entries(types).map(([t,q]) => `${q}x${t}`).join(" + "));
+  si.set(SI.ctrSummary, summary());
   si.set(SI.pcs, `${fmtInt(s.pcs)} PIECE(S)`);
   si.set(SI.kg, `${fmtInt(s.kg)} KGS `);
   si.set(SI.cbm, `${s.cbm.toFixed(3)}  CBM`);
@@ -556,56 +770,223 @@ async function build(){
   si.set(SI.total, `TOTAL : ${words(n)} (${n}) CONTAINER${n>1?"S":""} ONLY `);
   for (const [key,id] of [["consignee","p_consignee"],["notify","p_notify"],["agent","p_agent"]]) {
     const lines = $(id).value.split("\n");
-    SI[key].forEach((ref,i) => si.set(ref, lines[i]||""));
+    SI[key].forEach((ref,i) => si.set(ref, lines[i]||"", false));
   }
-
+  att.missing = new Set(); vgm.missing = new Set();
   for (let i=0;i<MAX_CTR;i++) {
     const c = ctrs[i], ar = ATTACH_FIRST+i, vr = VGM_FIRST+i;
-    att.set("B"+ar, c ? c.no.replace(/\s|-/g,"") : "");
-    att.set("C"+ar, c ? c.seal.trim() : "");
-    att.set("D"+ar, c ? num(c.pcs) : "");
-    att.set("F"+ar, c ? num(c.kg) : "");
-    att.set("H"+ar, c ? num(c.cbm) : "");
+    att.set("B"+ar, c ? cleanNo(c.no) : ""); att.set("C"+ar, c ? c.seal.trim() : "");
+    att.set("D"+ar, c ? num(c.pcs) : ""); att.set("F"+ar, c ? num(c.kg) : ""); att.set("H"+ar, c ? num(c.cbm) : "");
     if (!c || att.formula("J"+ar) === null || c.type !== "40HQ") att.set("J"+ar, c ? c.type : "");
-    vgm.set("B"+vr, c && c.date ? dateToSerial(c.date) : "");
-    vgm.set("C"+vr, c ? 2 : "");
-    vgm.set("G"+vr, c ? num(c.tare) : "");
+    vgm.set("B"+vr, c && c.date ? dateToSerial(c.date) : ""); vgm.set("C"+vr, c ? 2 : ""); vgm.set("G"+vr, c ? num(c.tare) : "");
+    if (c) { // mark what the container team still owes us
+      if (!c.no) { att.missing.add("B"+ar); att.touched.add("B"+ar); vgm.missing.add("A"+vr); vgm.touched.add("A"+vr); }
+      if (!c.seal) { att.missing.add("C"+ar); att.touched.add("C"+ar); }
+      if (!c.tareSet) vgm.missing.add("G"+vr);
+      vgm.touched.add("A"+vr); vgm.touched.add("D"+vr); vgm.touched.add("H"+vr);
+    }
   }
-  recalc(book);
+}
 
+async function build(){
+  const { zip, book } = await buildBook();
   for (const name in book) zip.file(book[name].path, serXml(book[name].doc));
   // force Excel to recalculate everything on open; drop the stale calc chain
   zip.remove("xl/calcChain.xml");
-  let rels = await zip.file("xl/_rels/workbook.xml.rels").async("string");
+  const rels = await zip.file("xl/_rels/workbook.xml.rels").async("string");
   zip.file("xl/_rels/workbook.xml.rels", rels.replace(/<Relationship [^>]*calcChain[^>]*\/>/, ""));
-  let ct = await zip.file("[Content_Types].xml").async("string");
+  const ct = await zip.file("[Content_Types].xml").async("string");
   zip.file("[Content_Types].xml", ct.replace(/<Override [^>]*calcChain[^>]*\/>/, ""));
   let wb = await zip.file("xl/workbook.xml").async("string");
   wb = /<calcPr\b/.test(wb) ? wb.replace(/<calcPr\b([^>]*?)\s*\/>/, (m,a) => `<calcPr${a.replace(/\s*fullCalcOnLoad="[^"]*"/,"")} fullCalcOnLoad="1"/>`)
                             : wb.replace("</workbook>", '<calcPr fullCalcOnLoad="1"/></workbook>');
   zip.file("xl/workbook.xml", wb);
-
   return zip.generateAsync({ type:"blob", compression:"DEFLATE", mimeType:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
 }
 
 $("btnBuild").onclick = async () => {
   const msgs = validate(), errs = msgs.filter(m=>m[0]==="err").length;
-  if (errs && !confirm(`ยังมี ${errs} จุดที่ต้องแก้ ต้องการดาวน์โหลดทั้งที่ยังไม่ครบหรือไม่?`)) return;
+  if (errs && !confirm(`ยังขาดข้อมูล ${errs} จุด ต้องการดาวน์โหลดทั้งที่ยังไม่ครบหรือไม่?`)) return;
   try {
-    const blob = await build();
-    const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
     let name = $("f_outname").value.trim() || "SI_VGM.xlsx"; if (!/\.xlsx$/i.test(name)) name += ".xlsx";
-    a.download = name; document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    download(await build(), name);
   } catch(e) { alert("สร้างไฟล์ไม่สำเร็จ: " + e.message); console.error(e); }
 };
+
+/* ---------- Preview: render the real workbook (styles, merges, widths) ---------- */
+let previewStyles = null, pvSheet = 0, pvTimer = null, pvBusy = false, pvAgain = false;
+function schedulePreview(){ clearTimeout(pvTimer); pvTimer = setTimeout(renderPreview, 150); }
+
+const INDEXED = { 8:"000000", 9:"FFFFFF", 10:"FF0000", 11:"00FF00", 12:"0000FF", 13:"FFFF00", 14:"FF00FF", 15:"00FFFF", 22:"C0C0C0", 23:"808080" };
+function tintColor(hex, tint){
+  if (!tint) return hex;
+  let r = parseInt(hex.slice(0,2),16)/255, g = parseInt(hex.slice(2,4),16)/255, b = parseInt(hex.slice(4,6),16)/255;
+  const max = Math.max(r,g,b), min = Math.min(r,g,b); let h = 0, s = 0, l = (max+min)/2;
+  if (max !== min) { const d = max-min; s = l > .5 ? d/(2-max-min) : d/(max+min);
+    h = max===r ? (g-b)/d + (g<b?6:0) : max===g ? (b-r)/d + 2 : (r-g)/d + 4; h /= 6; }
+  l = tint < 0 ? l*(1+tint) : l*(1-tint) + tint;
+  const f = (p,q,t) => { if (t<0) t+=1; if (t>1) t-=1; return t<1/6 ? p+(q-p)*6*t : t<1/2 ? q : t<2/3 ? p+(q-p)*(2/3-t)*6 : p; };
+  if (s === 0) r = g = b = l; else { const q = l < .5 ? l*(1+s) : l+s-l*s, p = 2*l-q; r = f(p,q,h+1/3); g = f(p,q,h); b = f(p,q,h-1/3); }
+  return [r,g,b].map(x => Math.round(x*255).toString(16).padStart(2,"0")).join("");
+}
+async function loadStyles(zip){
+  const theme = [];
+  const tf = zip.file("xl/theme/theme1.xml");
+  if (tf) { const t = parseXml(await tf.async("string")); const cs = t.getElementsByTagName("a:clrScheme")[0];
+    if (cs) for (const el of cs.children) { const c = el.firstElementChild; theme.push(c.getAttribute("lastClr") || c.getAttribute("val")); } }
+  [theme[0], theme[1], theme[2], theme[3]] = [theme[1], theme[0], theme[3], theme[2]]; // Excel order: lt1, dk1, lt2, dk2
+  const color = el => { if (!el) return null;
+    if (el.getAttribute("rgb")) return "#" + el.getAttribute("rgb").slice(-6);
+    if (el.getAttribute("theme") !== null && theme[+el.getAttribute("theme")]) return "#" + tintColor(theme[+el.getAttribute("theme")], +el.getAttribute("tint")||0);
+    if (el.getAttribute("indexed") && INDEXED[el.getAttribute("indexed")]) return "#" + INDEXED[el.getAttribute("indexed")];
+    return null; };
+  const d = parseXml(await zip.file("xl/styles.xml").async("string"));
+  const kid = (el, n) => [...el.children].find(c => c.localName === n);
+  const fmts = {}; for (const f of d.getElementsByTagName("numFmt")) fmts[f.getAttribute("numFmtId")] = f.getAttribute("formatCode");
+  const fonts = [...kid(d.documentElement,"fonts").children].map(f => ({
+    b: !!kid(f,"b"), i: !!kid(f,"i"), u: !!kid(f,"u"), strike: !!kid(f,"strike"),
+    sz: kid(f,"sz") ? +kid(f,"sz").getAttribute("val") : 11, name: kid(f,"name") ? kid(f,"name").getAttribute("val") : "Calibri", color: color(kid(f,"color")) }));
+  const fills = [...kid(d.documentElement,"fills").children].map(f => { const p = kid(f,"patternFill");
+    return p && p.getAttribute("patternType") === "solid" ? color(kid(p,"fgColor")) : null; });
+  const BW = { thin:"1px solid", hair:"1px solid", dotted:"1px dotted", dashed:"1px dashed", dashDot:"1px dashed", dashDotDot:"1px dotted",
+    medium:"2px solid", mediumDashed:"2px dashed", mediumDashDot:"2px dashed", mediumDashDotDot:"2px dashed", slantDashDot:"2px dashed", thick:"3px solid", double:"3px double" };
+  const borders = [...kid(d.documentElement,"borders").children].map(b => { const o = {};
+    for (const side of ["left","right","top","bottom"]) { const s = kid(b,side); const st = s && s.getAttribute("style");
+      if (st && BW[st]) o[side] = `${BW[st]} ${color(kid(s,"color")) || "#000"}`; }
+    return o; });
+  const xfs = [...kid(d.documentElement,"cellXfs").children].map(x => { const a = kid(x,"alignment");
+    return { fmt: +x.getAttribute("numFmtId")||0, font: fonts[+x.getAttribute("fontId")||0], fill: fills[+x.getAttribute("fillId")||0], border: borders[+x.getAttribute("borderId")||0],
+      h: a && a.getAttribute("horizontal"), v: a && a.getAttribute("vertical"), wrap: !!(a && a.getAttribute("wrapText") === "1"), indent: a ? +a.getAttribute("indent")||0 : 0 }; });
+  return { fmts, xfs };
+}
+const BUILTIN_FMT = { 1:"0", 2:"0.00", 3:"#,##0", 4:"#,##0.00", 9:"0%", 10:"0.00%", 14:"d/m/yyyy", 15:"d-mmm-yy", 16:"d-mmm", 17:"mmm-yy", 18:"h:mm AM/PM", 20:"h:mm", 22:"d/m/yyyy h:mm",
+  37:"#,##0;(#,##0)", 38:"#,##0;(#,##0)", 39:"#,##0.00;(#,##0.00)", 40:"#,##0.00;(#,##0.00)", 41:'_(* #,##0_);_(* (#,##0);_(* "-"_);_(@_)', 43:'_(* #,##0.00_);_(* (#,##0.00);_(* "-"??_);_(@_)', 49:"@" };
+function formatValue(v, xf, styles){
+  if (v === null || v === undefined) return "";
+  if (typeof v === "boolean") return v ? "TRUE" : "FALSE";
+  if (typeof v === "string") return v;
+  const code = styles.fmts[xf.fmt] || BUILTIN_FMT[xf.fmt] || "General";
+  const secs = code.split(/;(?=(?:[^"]*"[^"]*")*[^"]*$)/);
+  let sec = secs[0], val = v;
+  if (v < 0) { val = -v; if (secs[1]) sec = secs[1]; } else if (v === 0 && secs[2]) sec = secs[2];
+  const plain = sec.replace(/"[^"]*"|\\.|_.|\*.|\[[^\]]*\]/g, "");
+  if (/General/i.test(plain)) return String(+val.toPrecision(11));
+  if (/[dy]|m{1,4}(?![^"]*")/i.test(plain) && !/[0#]/.test(plain)) { // date
+    const d = serialToDate(val), dd = d.getUTCDate(), mm = d.getUTCMonth(), yy = d.getUTCFullYear();
+    return sec.replace(/"([^"]*)"|\\(.)|_.|\*.|\[[^\]]*\]|yyyy|yy|mmmm|mmm|mm|m|dd|d|hh|h|ss|AM\/PM/gi, (t, q, e) =>
+      q !== undefined ? q : e !== undefined ? e : t[0]==="_"||t[0]==="*"||t[0]==="[" ? "" :
+      ({ yyyy:yy, yy:String(yy).slice(2), mmmm:MON(mm), mmm:MON(mm), mm:String(mm+1).padStart(2,"0"), m:mm+1, dd:String(dd).padStart(2,"0"), d:dd,
+         hh:"00", h:"0", ss:"00", "am/pm":"AM" })[t.toLowerCase()] ?? t);
+  }
+  const unq = t => t.replace(/"([^"]*)"|\\(.)/g, (m,q,e) => q ?? e ?? "");
+  const clean = sec.replace(/_.|\*.|\[[^\]]*\]/g, "");
+  if (!/[0#]/.test(clean)) return unq(clean).replace(/\?/g, "").trim(); // e.g. accounting zero shows "-"
+  const dec = (/\.([0#?]+)/.exec(clean) || ["",""])[1].length;
+  const pct = clean.includes("%") ? 100 : 1;
+  let n = (val*pct).toFixed(dec);
+  if (/[#0?],[#0?]/.test(clean)) { const [i,f] = n.split("."); n = Number(i).toLocaleString("en-US") + (f ? "." + f : ""); }
+  const i0 = clean.search(/[0#?]/), i1 = Math.max(clean.lastIndexOf("0"), clean.lastIndexOf("#"), clean.lastIndexOf("?"));
+  const out = (unq(clean.slice(0,i0)) + n + unq(clean.slice(i1+1))).trim();
+  return v < 0 && sec === secs[0] ? "-" + out : out;
+}
+function sheetRange(sh){
+  if (sh.printArea) return sh.printArea;
+  const dim = sh.doc.getElementsByTagName("dimension")[0];
+  if (dim && dim.getAttribute("ref").includes(":")) return dim.getAttribute("ref");
+  let mr = 1, mc = 1; for (const ref in sh.cells) { const [c,r] = splitRef(ref); mr = Math.max(mr,r); mc = Math.max(mc,colNum(c)); }
+  return `A1:${colName(mc)}${mr}`;
+}
+function renderSheet(sh, styles, highlight){
+  const doc = sh.doc;
+  const [a, b] = sheetRange(sh).split(":");
+  const [c1s, r1] = splitRef(a), [c2s, r2] = splitRef(b), c1 = colNum(c1s), c2 = colNum(c2s);
+  const fmtPr = doc.getElementsByTagName("sheetFormatPr")[0];
+  const defW = fmtPr && fmtPr.getAttribute("defaultColWidth") ? +fmtPr.getAttribute("defaultColWidth") : 8.43;
+  const defH = fmtPr && fmtPr.getAttribute("defaultRowHeight") ? +fmtPr.getAttribute("defaultRowHeight") : 15;
+  const colW = {}, colStyle = {};
+  for (const col of doc.getElementsByTagName("col")) for (let i=+col.getAttribute("min"); i<=+col.getAttribute("max"); i++) {
+    colW[i] = col.getAttribute("hidden") === "1" ? 0 : +col.getAttribute("width"); if (col.getAttribute("style")) colStyle[i] = +col.getAttribute("style"); }
+  const rowH = {}, rowHidden = {};
+  for (const r of doc.getElementsByTagName("row")) { const n = +r.getAttribute("r");
+    if (r.getAttribute("ht")) rowH[n] = +r.getAttribute("ht"); if (r.getAttribute("hidden") === "1") rowHidden[n] = true; }
+  const merges = {}, covered = new Set();
+  for (const m of doc.getElementsByTagName("mergeCell")) {
+    const [x, y] = m.getAttribute("ref").split(":"); const [xc, xr] = splitRef(x), [yc, yr] = splitRef(y);
+    merges[x] = { rs: yr-xr+1, cs: colNum(yc)-colNum(xc)+1, br: yr, bc: colNum(yc) };
+    for (let r=xr; r<=yr; r++) for (let c=colNum(xc); c<=colNum(yc); c++) if (r!==xr || c!==colNum(xc)) covered.add(colName(c)+r);
+  }
+  const xfOf = (ref, ci) => { const c = sh.cells[ref]; const s = c && c.getAttribute("s"); return styles.xfs[s !== null && s !== undefined ? +s : (colStyle[ci] ?? 0)] || styles.xfs[0]; };
+  const px = w => Math.round(w * 7 + 5);
+  let cols = "", total = 0;
+  for (let c=c1; c<=c2; c++) { const w = colW[c] === 0 ? 0 : px(colW[c] ?? defW); total += w; cols += `<col style="width:${w}px">`; }
+  let html = `<table class="xl" style="width:${total}px"><colgroup>${cols}`;
+  html += `</colgroup>`;
+  for (let r=r1; r<=r2; r++) {
+    if (rowHidden[r]) continue;
+    html += `<tr style="height:${((rowH[r] ?? defH) * 4/3).toFixed(1)}px">`;
+    for (let c=c1; c<=c2; c++) {
+      const ref = colName(c)+r; if (covered.has(ref)) continue;
+      const m = merges[ref], xf = xfOf(ref, c), f = xf.font || {};
+      const el = sh.cells[ref], raw = el ? cellValue(el, sh.sst) : null;
+      const isNum = typeof raw === "number";
+      let txt = formatValue(raw, xf, styles);
+      const css = [];
+      if (xf.fill) css.push(`background:${xf.fill}`);
+      const bd = { ...xf.border };
+      if (m) { // merged: right/bottom borders come from the edge cells
+        const rb = xfOf(colName(m.bc)+r, m.bc).border, bb = xfOf(colName(c)+m.br, c).border;
+        if (rb.right) bd.right = rb.right; if (bb.bottom) bd.bottom = bb.bottom; }
+      for (const s of ["left","right","top","bottom"]) if (bd[s]) css.push(`border-${s}:${bd[s]}`);
+      const fam = /ゴシック|Gothic/i.test(f.name||"") ? `'MS Gothic','Osaka-Mono','Courier New',monospace` : `'${String(f.name).replace(/['"<>&]/g,"")}',Calibri,Arial,sans-serif`;
+      css.push(`font-family:${fam}`, `font-size:${f.sz||11}pt`);
+      if (f.b) css.push("font-weight:bold"); if (f.i) css.push("font-style:italic");
+      if (f.u) css.push("text-decoration:underline"); if (f.color) css.push(`color:${f.color}`);
+      const h = xf.h || (isNum ? "right" : "left");
+      css.push(`text-align:${h === "centerContinuous" ? "center" : h === "general" ? (isNum ? "right" : "left") : h}`);
+      css.push(`vertical-align:${xf.v === "center" ? "middle" : xf.v === "top" ? "top" : "bottom"}`);
+      if (xf.indent) css.push(`padding-left:${xf.indent*9+2}px`);
+      if (!xf.wrap) txt = txt.replace(/\n/g, " ");
+      const cls = [xf.wrap ? "wrap" : "", highlight && sh.touched.has(ref) ? "hl" : "", highlight && sh.missing && sh.missing.has(ref) ? "missing" : ""].join(" ").trim();
+      html += `<td${m ? ` rowspan="${m.rs}" colspan="${m.cs}"` : ""}${cls ? ` class="${cls}"` : ""} style="${css.join(";")}"><div>${esc(txt)}</div></td>`;
+    }
+    html += `</tr>`;
+  }
+  return html + `</table>`;
+}
+async function renderPreview(){
+  if (pvBusy) { pvAgain = true; return; }
+  if (!templateBuf) return;
+  pvBusy = true;
+  try {
+    const { zip, book } = await buildBook();
+    if (!previewStyles) previewStyles = await loadStyles(zip);
+    const names = Object.keys(book);
+    if (pvSheet >= names.length) pvSheet = 0;
+    $("pvTabs").innerHTML = names.map((n,i) => `<button type="button" class="tab${i===pvSheet?" on":""}" data-sheet="${i}">${esc(n.trim())}</button>`).join(" ");
+    const stage = $("stage"), keep = [stage.scrollTop, stage.scrollLeft];
+    stage.innerHTML = `<div class="paper" id="paper">${renderSheet(book[names[pvSheet]], previewStyles, $("pvHl").checked)}</div>`;
+    applyZoom(); [stage.scrollTop, stage.scrollLeft] = keep;
+  } catch(e) { console.error(e); $("stage").innerHTML = `<div class="empty">แสดง Preview ไม่ได้: ${esc(e.message)}</div>`; }
+  pvBusy = false;
+  if (pvAgain) { pvAgain = false; renderPreview(); }
+}
+function applyZoom(){
+  const paper = $("paper"); if (!paper) return;
+  paper.style.zoom = 1;
+  const z = $("pvZoom").value;
+  paper.style.zoom = z === "fit" ? Math.min(1.25, ($("stage").clientWidth - 34) / paper.offsetWidth) : z;
+}
+$("pvTabs").addEventListener("click", e => { const b = e.target.closest("[data-sheet]"); if (b) { pvSheet = +b.dataset.sheet; $("stage").scrollTop = 0; renderPreview(); } });
+$("pvHl").onchange = renderPreview;
+$("pvZoom").onchange = applyZoom;
+window.addEventListener("resize", () => { if ($("pvZoom").value === "fit") applyZoom(); });
 
 // template: one the user chose earlier, else the one built into this file
 const EMBEDDED_TPL = /*TPL*/null;
 function loadBuiltin(){ if (EMBEDDED_TPL) loadTemplate(unb64(EMBEDDED_TPL.data), EMBEDDED_TPL.name + " (ในตัว)", true).catch(()=>{}); }
 let remembered = null;
 try { remembered = JSON.parse(localStorage.getItem("sivgm_tpl")||"null"); } catch(_){}
-if (remembered) loadTemplate(unb64(remembered.data), remembered.name + " (จำไว้จากครั้งก่อน)").catch(loadBuiltin); else loadBuiltin();
+if (remembered) loadTemplate(unb64(remembered.data), remembered.name + " (จำไว้)").catch(loadBuiltin); else loadBuiltin();
 $("useBuiltin").onclick = e => { e.preventDefault(); try { localStorage.removeItem("sivgm_tpl"); } catch(_){} loadBuiltin(); };
 </script>
 </body>
