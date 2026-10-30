@@ -90,10 +90,10 @@ examples/ep4 ep5 ep6 kuchisake hanako   complete episodes (script.py + scenes.js
 
 `examples/teke3d/` uses real 3D instead of SVG: a toy/diorama look with low-poly scenery, soft shadows, fog, street lamps, blinking crossing lights and a camera that moves through the scene. Audio, music and the mix are the same as for 2D episodes.
 
-1. Install Three.js once: `npm install three@0.169.0` in a working folder.
+1. Three.js r169 is bundled at `engine3d/three/` (MIT licence), so there is nothing to install.
 2. In the episode folder, create two symlinks:
-   - `three` → `node_modules/three`
-   - `fonts` → `engine/fonts`
+   - `ln -s <skill>/engine3d/three three`
+   - `ln -s <skill>/engine/fonts fonts`
 3. Write `script.py` and run `engine/gen_ep.py`, `engine/gen_music.py` and `engine/mix_ep.py` as for 2D.
 4. Put the episode in `EPDIR/scene3d.html`, starting from the example. It defines `window.setup(tl)` and `window.render(t)`:
    - `render(t)` places the meshes and the camera through `shot(...)`, then calls `R.render`.
