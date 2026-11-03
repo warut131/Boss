@@ -360,6 +360,9 @@ function parseBooking(cells, sheetName){
       const h = norm(x.val);
       if (h==="STUFFING DATE") col.date=x.c; else if (h==="CONTAINER TYPE") col.type=x.c; else if (h==="CONTAINER NO") col.qty=x.c;
       else if (h.includes("Q'TY")) col.pcs=x.c; else if (h==="M3") col.cbm=x.c; else if (h==="WEIGHT") col.kg=x.c;
+      // columns the container team adds to the right of the table: "CONTAINER" | "Seal No." | "Tare kg"
+      else if (/^(CONTAINER|CONTAINER NUMBER|CONTAINER NO\.|CNTR NO\.?)$/.test(h)) col.ctr=x.c;
+      else if (h.includes("SEAL")) col.seal=x.c; else if (h.includes("TARE")) col.tare=x.c;
     }
     const get = (r,c) => { const x = rows[r].find(y=>y.c===c); return x ? x.val : ""; };
     for (const r of rowNums.filter(r=>r>hdrRow)) {
@@ -368,7 +371,8 @@ function parseBooking(cells, sheetName){
       if (first==="TOTAL") { b.total = { qty:+get(r,col.qty)||0, pcs:+get(r,col.pcs)||0, kg:+get(r,col.kg)||0, cbm:+get(r,col.cbm)||0 }; break; }
       if (!get(r,col.type)) continue;
       b.lines.push({ date: dateText(get(r,col.date)), type: normType(String(get(r,col.type)).split("-")[0]),
-        qty: Math.max(1, parseInt(get(r,col.qty))||1), pcs:+get(r,col.pcs)||0, kg:+get(r,col.kg)||0, cbm:+get(r,col.cbm)||0 });
+        qty: Math.max(1, parseInt(get(r,col.qty))||1), pcs:+get(r,col.pcs)||0, kg:+get(r,col.kg)||0, cbm:+get(r,col.cbm)||0,
+        ctrNo: cleanNo(get(r,col.ctr)), seal: String(get(r,col.seal)).trim().toUpperCase(), tare: String(get(r,col.tare)).trim() === "" ? "" : num(get(r,col.tare)) });
     }
   }
   // "CONTAINER No" is normally a running index (1,2,3 — one row per container), not a count.
@@ -651,6 +655,12 @@ function applyTeam(t, source){
 // Reads what the container team types in LINE / e-mail. Accepts one box per line
 // ("1) TGHU1234565 / OOLKAB1234 / 3750"), labels in Thai or English ("ซีล:", "Tare 3,750 kg"),
 // or one value per line under the container number.
+// container no. / seal / tare the container team typed into the Booking Request's extra columns
+function teamFromBooking(b){
+  const list = [];
+  b.lines.forEach((l,i) => { if (l.ctrNo || l.seal || l.tare !== "") list.push({ idx:i+1, no:l.ctrNo, seal:l.seal, tare:l.tare }); });
+  return { booking: b.booking, list };
+}
 function parsePaste(text){
   const list = [];
   const fill = (item, line) => {
@@ -702,8 +712,15 @@ async function handleFiles(files){
       }
       if (x.kind === "template") { await loadTemplate(x.buf, x.file.name);
         try { localStorage.setItem("sivgm_tpl", JSON.stringify({ name:x.file.name, data: b64(x.buf) })); } catch(_){} }
-      else if (x.kind === "booking" && loadJobs()[x.data.booking] && confirm(`Booking ${x.data.booking} บันทึกไว้แล้ว (มีข้อมูลตู้/PDF ที่ทำไว้)\nเปิดงานที่บันทึกไว้ทำต่อหรือไม่? (ยกเลิก = เริ่มใหม่จากไฟล์นี้)`)) { openJob(x.data.booking); }
-      else if (x.kind === "booking") { booking = x.data; resetPdfs(); $("chipBooking").textContent = "Booking: " + x.file.name; $("chipBooking").className = "chip done"; fillFromBooking(); }
+      else if (x.kind === "booking") {
+        const team = teamFromBooking(x.data), src = `Booking Request (${x.file.name})`;
+        if (booking && team.list.length && $("f_booking").value.trim() === x.data.booking) applyTeam(team, src); // same job, now with container data: just fill it in
+        else {
+          if (loadJobs()[x.data.booking] && confirm(`Booking ${x.data.booking} บันทึกไว้แล้ว (มีข้อมูลตู้/PDF ที่ทำไว้)\nเปิดงานที่บันทึกไว้ทำต่อหรือไม่? (ยกเลิก = เริ่มใหม่จากไฟล์นี้)`)) openJob(x.data.booking);
+          else { booking = x.data; resetPdfs(); $("chipBooking").textContent = "Booking: " + x.file.name; $("chipBooking").className = "chip done"; fillFromBooking(); }
+          if (team.list.length) applyTeam(team, src);
+        }
+      }
       else if (x.kind === "team") {
         if (!booking) { alert("วาง Booking Request ก่อน แล้วค่อยวางไฟล์ข้อมูลตู้"); continue; }
         applyTeam(x.data, x.file.name);
