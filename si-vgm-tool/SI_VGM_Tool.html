@@ -1018,12 +1018,19 @@ function reportPayload(){
 // Basic hand-off: tab-separated rows in the report's column order (A..X) to paste into Excel.
 // Same conventions as the report itself (and the Office Script): 40DC, carrier without spaces, port = city.
 const REPORT_SIZE = { "40HQ":"40DC", "40GP":"40DC", "20GP":"20DC" };
+// dates as the report shows them ("2-Nov"); Excel reads that as a date in the current year,
+// so another year gets its year spelled out
+function reportDate(iso){
+  if (!iso) return "";
+  const [y,m,d] = iso.split("-").map(Number);
+  return `${d}-${MON(m-1)}` + (y === new Date().getFullYear() ? "" : `-${y}`);
+}
 function reportRows(){
-  const p = reportPayload(), yes = b => b ? "TRUE" : "FALSE";
+  const p = reportPayload(), yes = b => b ? "TRUE" : "FALSE", D = reportDate;
   return p.containers.map((c,i) => [
-    $("f_job").value.trim(), c.loadDate, p.booking, i ? "" : p.containers.length, REPORT_SIZE[c.size] || c.size,
-    i ? "" : p.invoice, i ? "" : p.vessel, p.etd, p.carrier.replace(/\s+/g,"").toUpperCase(), p.port.toUpperCase(),
-    p.siCut, p.vgmCut, p.closing, p.returnCode, c.no, c.seal, "",
+    $("f_job").value.trim(), D(c.loadDate), p.booking, i ? "" : p.containers.length, REPORT_SIZE[c.size] || c.size,
+    i ? "" : p.invoice, i ? "" : p.vessel, D(p.etd), p.carrier.replace(/\s+/g,"").toUpperCase(), p.port.toUpperCase(),
+    D(p.siCut), D(p.vgmCut), D(p.closing), p.returnCode, c.no, c.seal, "",
     yes(p.preInvoice), "FALSE", yes(p.siReady), yes(p.vgmReady), "FALSE", "FALSE", "FALSE",
   ]);
 }
@@ -1034,6 +1041,9 @@ async function copyText(text){
 }
 $("btnCopyRows").onclick = async () => {
   if (!booking) return;
+  if (!pdfDocs.shinki) { $("copyResult").textContent = "ยังไม่ได้วาง PDF ใบยืนยัน Shinki — SI Cut off, VGM Cut off, Closing และ Return อยู่ใน PDF นี้ วางไฟล์ในข้อ 1 ก่อนแล้วกดคัดลอกอีกครั้ง"; return; }
+  const sh = pdfDocs.shinki, unread = [["SI Cut off",sh.siCut],["VGM Cut off",sh.vgmCut],["Closing",sh.closing],["Return",sh.returnCode]].filter(x => !x[1]).map(x => x[0]);
+  if (unread.length && !confirm(`อ่าน ${unread.join(", ")} จาก PDF Shinki ไม่ออก ช่องนั้นจะว่าง — คัดลอกต่อหรือไม่?`)) return;
   if (!$("f_job").value.trim() && !confirm("ยังไม่ได้ใส่ JOB No. — คัดลอกโดยเว้นช่อง JOB ว่างไว้หรือไม่?")) return;
   const rows = reportRows();
   const ok = await copyText(rows.map(r => r.join("\t")).join("\r\n"));
