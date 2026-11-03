@@ -67,11 +67,6 @@ table.ctr{border-collapse:collapse;width:100%;min-width:760px}
 button{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:7px;padding:6px 12px;cursor:pointer}
 button:hover{border-color:var(--accent)}
 button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600;padding:9px 18px}
-.handoff{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
-@media (max-width:640px){.handoff{grid-template-columns:1fr}}
-.step{border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:12.5px;display:flex;flex-direction:column;gap:6px}
-.step b{font-size:13px}
-.step .muted{flex:1}
 .status{font-size:12.5px;padding:6px 10px;border-radius:6px;margin-bottom:8px}
 .status.wait{background:var(--warn-bg);color:var(--warn)}
 .status.done{background:var(--ok-bg);color:var(--ok)}
@@ -156,18 +151,6 @@ table.xl{border-collapse:collapse;table-layout:fixed;font-family:Calibri,Arial,s
 <section>
   <h2><span class="n">2</span>ข้อมูลตู้ (ทีมตู้เป็นคนกรอก)</h2>
   <div class="status wait" id="teamStatus"></div>
-  <div class="handoff">
-    <div class="step"><b>① ส่งใบขอข้อมูลตู้</b><span class="muted">ไฟล์ Excel ที่ใส่ข้อมูล Booking ไว้แล้ว ทีมกรอกแค่ช่องสีเหลือง</span>
-      <div class="row"><button id="btnRequest" type="button">ดาวน์โหลดใบขอข้อมูลตู้ (Excel)</button><button id="btnRequestLine" type="button">คัดลอกข้อความขอข้อมูล (LINE)</button></div>
-      <span class="muted" id="requestLineResult"></span></div>
-    <div class="step"><b>② ทีมกรอกแล้วส่งกลับ</b><span class="muted">Container No. · Seal No. · Tare weight (kg) ทางอีเมล หรือ LINE</span></div>
-    <div class="step"><b>③ นำข้อมูลเข้า</b><span class="muted">ลากไฟล์ที่ได้กลับมาวางในข้อ 1 หรือวางข้อความจาก LINE ด้านล่าง</span></div>
-  </div>
-  <details id="pasteBox">
-    <summary>วางข้อความจาก LINE / อีเมล (เช่น "TXGU7786137 YMAW745793 3700" บรรทัดละตู้)</summary>
-    <textarea id="pasteText" rows="4" placeholder="TXGU7786137  YMAW745793  3700&#10;TIIU6729648  YMAW745712  3750"></textarea>
-    <div class="row" style="margin-top:6px"><button id="btnPaste" type="button">นำเข้าข้อความ</button><span class="muted" id="pasteResult"></span></div>
-  </details>
   <div class="row" style="margin:6px 0">
     <span class="muted" id="ctrInfo"></span><span class="spacer"></span>
     <button id="addRow" type="button">+ เพิ่มตู้</button><button id="delRow" type="button">− ลบตู้สุดท้าย</button>
@@ -561,63 +544,6 @@ async function readTemplate(buf){
 }
 
 /* ---------- Container info request (to / from the container team) ---------- */
-function xlsxPackage(sheetName, sheetXml, stylesXml){
-  const zip = new JSZip();
-  zip.file("[Content_Types].xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>`, NOFOLDERS);
-  zip.file("_rels/.rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`, NOFOLDERS);
-  zip.file("xl/workbook.xml", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="${NS}" xmlns:r="${RNS}"><sheets><sheet name="${xmlEsc(sheetName)}" sheetId="1" r:id="rId1"/></sheets></workbook>`, NOFOLDERS);
-  zip.file("xl/_rels/workbook.xml.rels", `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`, NOFOLDERS);
-  zip.file("xl/styles.xml", stylesXml, NOFOLDERS);
-  zip.file("xl/worksheets/sheet1.xml", sheetXml, NOFOLDERS);
-  return zip.generateAsync({ type:"blob", compression:"DEFLATE", mimeType:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
-}
-// style ids: 1 title, 2 label, 3 value, 4 note, 5 header, 6 read-only text, 7 input text, 8 input number, 9 read-only #,##0, 10 read-only 0.000
-const REQ_STYLES = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="${NS}"><numFmts count="1"><numFmt numFmtId="164" formatCode="0.000"/></numFmts>`
- + `<fonts count="4"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="14"/><name val="Calibri"/></font><font><i/><sz val="10"/><color rgb="FF7F6000"/><name val="Calibri"/></font></fonts>`
- + `<fills count="5"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFFFF2CC"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFD9E1F2"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFF2F2F2"/></patternFill></fill></fills>`
- + `<borders count="2"><border/><border><left style="thin"><color rgb="FFA6A6A6"/></left><right style="thin"><color rgb="FFA6A6A6"/></right><top style="thin"><color rgb="FFA6A6A6"/></top><bottom style="thin"><color rgb="FFA6A6A6"/></bottom></border></borders>`
- + `<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="11">`
- + `<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>`
- + `<xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1"/>`
- + `<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/>`
- + `<xf numFmtId="49" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"><alignment horizontal="left"/></xf>`
- + `<xf numFmtId="0" fontId="3" fillId="0" borderId="0" xfId="0" applyFont="1"/>`
- + `<xf numFmtId="0" fontId="1" fillId="3" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>`
- + `<xf numFmtId="49" fontId="0" fillId="4" borderId="1" xfId="0" applyNumberFormat="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center"/></xf>`
- + `<xf numFmtId="49" fontId="0" fillId="2" borderId="1" xfId="0" applyNumberFormat="1" applyFill="1" applyBorder="1" applyProtection="1"><protection locked="0"/></xf>`
- + `<xf numFmtId="3" fontId="0" fillId="2" borderId="1" xfId="0" applyNumberFormat="1" applyFill="1" applyBorder="1" applyProtection="1"><protection locked="0"/></xf>`
- + `<xf numFmtId="3" fontId="0" fillId="4" borderId="1" xfId="0" applyNumberFormat="1" applyFill="1" applyBorder="1"/>`
- + `<xf numFmtId="164" fontId="0" fillId="4" borderId="1" xfId="0" applyNumberFormat="1" applyFill="1" applyBorder="1"/>`
- + `</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;
-
-const REQ_FIRST = 12; // first data row in the request sheet
-function requestXml(){
-  const rows = [], cell = (ref, v, s) => v === "" || v === null || v === undefined ? `<c r="${ref}" s="${s}"/>`
-    : typeof v === "number" ? `<c r="${ref}" s="${s}"><v>${v}</v></c>`
-    : `<c r="${ref}" s="${s}" t="inlineStr"><is><t xml:space="preserve">${xmlEsc(v)}</t></is></c>`;
-  const row = (r, cells, ht) => rows.push(`<row r="${r}"${ht?` ht="${ht}" customHeight="1"`:""}>${cells.join("")}</row>`);
-  const b = booking;
-  row(1, [cell("A1","CONTAINER INFO / ใบขอข้อมูลตู้",1)], 22);
-  const info = [["Booking No.", $("f_booking").value], ["Invoice No.", $("f_invoice").value], ["Vessel / Voyage", $("f_vessel").value],
-    ["Port of Discharge", $("f_pod").value], ["Stuffing date", b.lines[0] ? b.lines[0].date : ""], ["CY Cut", b.cyCut],
-    ["Containers", summary()]];
-  info.forEach(([k,v],i) => row(3+i, [cell(`A${3+i}`,k,2), cell(`C${3+i}`,String(v),3)]));
-  row(10, [cell("A10","กรุณากรอกเฉพาะช่องสีเหลือง (Container No. · Seal No. · Tare weight) แล้วส่งไฟล์นี้กลับ — อย่าเปลี่ยนชื่อชีต",4)]);
-  row(11, ["No.","Type","Container No.","Seal No.","Tare weight (kg)","Pieces","Cargo kg","CBM"].map((h,i)=>cell(colName(i+1)+"11",h,5)), 30);
-  ctrs.forEach((c,i) => { const r = REQ_FIRST+i;
-    row(r, [cell("A"+r,i+1,6), cell("B"+r,c.type,6), cell("C"+r,c.no,7), cell("D"+r,c.seal,7), cell("E"+r,c.tareSet ? num(c.tare) : "",8),
-            cell("F"+r,c.pcs===""?"":num(c.pcs),9), cell("G"+r,c.kg===""?"":num(c.kg),9), cell("H"+r,c.cbm===""?"":num(c.cbm),10)]); });
-  const last = REQ_FIRST + ctrs.length - 1;
-  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="${NS}" xmlns:r="${RNS}">`
-    + `<sheetViews><sheetView workbookViewId="0" tabSelected="1"><selection activeCell="C${REQ_FIRST}" sqref="C${REQ_FIRST}"/></sheetView></sheetViews>`
-    + `<cols><col min="1" max="1" width="7" customWidth="1"/><col min="2" max="2" width="10" customWidth="1"/><col min="3" max="3" width="18" customWidth="1"/><col min="4" max="4" width="16" customWidth="1"/><col min="5" max="5" width="14" customWidth="1"/><col min="6" max="8" width="11" customWidth="1"/></cols>`
-    + `<sheetData>${rows.join("")}</sheetData>`
-    + `<sheetProtection sheet="1" objects="1" scenarios="1" formatColumns="0" formatRows="0"/>`
-    + `<dataValidations count="2">`
-    + `<dataValidation type="textLength" operator="equal" allowBlank="1" showErrorMessage="1" errorTitle="Container No." error="ต้องเป็น 4 ตัวอักษร + 7 ตัวเลข เช่น ABCU1234567" sqref="C${REQ_FIRST}:C${last}"><formula1>11</formula1></dataValidation>`
-    + `<dataValidation type="whole" allowBlank="1" showErrorMessage="1" errorTitle="Tare weight" error="ใส่เป็นตัวเลข kg ระหว่าง 1,000 - 10,000" sqref="E${REQ_FIRST}:E${last}"><formula1>1000</formula1><formula2>10000</formula2></dataValidation>`
-    + `</dataValidations><pageMargins left="0.5" right="0.5" top="0.75" bottom="0.75" header="0.3" footer="0.3"/><pageSetup paperSize="9" orientation="landscape"/></worksheet>`;
-}
 function parseTeam(cells){
   const rows = rowsOf(cells), nums = Object.keys(rows).map(Number).sort((a,b)=>a-b);
   let bk = "";
@@ -652,36 +578,11 @@ function applyTeam(t, source){
   renderCtrs();
   return n;
 }
-// Reads what the container team types in LINE / e-mail. Accepts one box per line
-// ("1) TGHU1234565 / OOLKAB1234 / 3750"), labels in Thai or English ("ซีล:", "Tare 3,750 kg"),
-// or one value per line under the container number.
 // container no. / seal / tare the container team typed into the Booking Request's extra columns
 function teamFromBooking(b){
   const list = [];
   b.lines.forEach((l,i) => { if (l.ctrNo || l.seal || l.tare !== "") list.push({ idx:i+1, no:l.ctrNo, seal:l.seal, tare:l.tare }); });
   return { booking: b.booking, list };
-}
-function parsePaste(text){
-  const list = [];
-  const fill = (item, line) => {
-    const toks = line.replace(/[:：\/]/g," ").replace(/(\d)\s*KGS?\b/g,"$1").split(/[\s;|\t]+|,(?!\d{3}\b)/).filter(Boolean);
-    for (const t of toks) { const v = num(t);
-      if (item.tare === "" && /^[\d,]+(\.\d+)?$/.test(t) && v >= 1000 && v <= 10000) item.tare = v;
-      else if (!item.seal && /^[A-Z0-9-]{4,}$/.test(t) && /\d/.test(t) && !/^\d{1,4}$/.test(t)) item.seal = t.replace(/[^A-Z0-9]/g,""); }
-  };
-  for (const raw of text.split(/\r?\n/)) {
-    const line = raw.toUpperCase();
-    const m = /\b([A-Z]{3}[UJZ])[\s-]?(\d{6})[\s-]?(\d)\b/.exec(line); // ISO 6346: owner code ends in U/J/Z
-    if (m) {
-      const lead = /^\s*(?:(?:#|NO\.?|ตู้(?:ที่)?)\s*(\d{1,2})\s*[).:\-]?|(\d{1,2})\s*[).:\-])\s/.exec(line);   // "1) ", "#2 ", "ตู้ที่ 3: "
-      const item = { idx: lead ? +(lead[1] || lead[2]) : list.length + 1, no: m[1]+m[2]+m[3], seal: "", tare: "" };
-      fill(item, line.replace(lead ? lead[0] : "", " ").replace(m[0], " "));
-      list.push(item);
-    } else if (list.length && (/SEAL|ซีล|TARE|น้ำหนัก|\bTW\b/.test(line) || line.trim().split(/\s+/).length === 1)) {
-      fill(list[list.length-1], line);   // value on its own line under the container
-    }
-  }
-  return { booking: "", list };
 }
 
 /* ---------- UI ---------- */
@@ -795,32 +696,8 @@ $("ctrBody").addEventListener("input", e => {
 });
 $("addRow").onclick = () => { if (ctrs.length>=MAX_CTR) return alert(`Template รองรับสูงสุด ${MAX_CTR} ตู้`); ctrs.push(blankCtr()); renderCtrs(); };
 $("delRow").onclick = () => { if (ctrs.length>1) { ctrs.pop(); renderCtrs(); } };
-document.querySelectorAll("#form input:not([data-k]), #form textarea:not(#pasteText)").forEach(el => el.addEventListener("input", () => {
+document.querySelectorAll("#form input:not([data-k]), #form textarea").forEach(el => el.addEventListener("input", () => {
   if (el.id==="f_booking"||el.id==="f_pod") setOutName(); refresh(); }));
-$("btnPaste").onclick = () => {
-  const t = parsePaste($("pasteText").value);
-  if (!t.list.length) { $("pasteResult").textContent = "ไม่พบเลขตู้ในข้อความ"; return; }
-  const n = applyTeam(t, "ข้อความที่วาง");
-  $("pasteResult").textContent = `นำเข้า ${n} ตู้แล้ว`;
-};
-// LINE request: booking summary + one numbered line per box; what is already known is pre-filled,
-// so the team only types what is missing and sends it back to paste above
-$("btnRequestLine").onclick = async () => {
-  if (!booking) return;
-  const lines = [
-    `ขอข้อมูลตู้ Booking ${$("f_booking").value} · ${$("f_pod").value.split(",")[0]} · ${$("f_vessel").value}`,
-    `${summary()} · โหลด ${[...new Set(ctrs.map(c => isoToText(c.date)).filter(Boolean))].join(", ")}`,
-    "รบกวนตอบกลับบรรทัดละตู้: เลขตู้ / ซีล / Tare (kg)",
-    ...ctrs.map((c,i) => { const known = [cleanNo(c.no), c.seal.trim(), c.tare === "" ? "" : num(c.tare)];
-      return `${i+1}) ` + (known.some(v => v !== "") ? known.join(" / ") : ""); }),
-  ];
-  const ok = await copyText(lines.join("\n"));
-  $("requestLineResult").textContent = ok ? "คัดลอกแล้ว — วางในแชท LINE ของทีมตู้ ได้คำตอบกลับมาให้วางในช่อง \"วางข้อความจาก LINE\" ด้านล่าง" : "คัดลอกไม่สำเร็จ";
-};
-$("btnRequest").onclick = async () => {
-  const blob = await xlsxPackage(REQ_SHEET, requestXml(), REQ_STYLES);
-  download(blob, `CONTAINER_INFO_${$("f_booking").value || "BOOKING"}.xlsx`);
-};
 function download(blob, name){
   const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name;
   document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 5000);
