@@ -102,8 +102,8 @@ table.xl{border-collapse:collapse;table-layout:fixed;font-family:Calibri,Arial,s
 <body>
 <header>
   <h1>SI / VGM Builder</h1>
-  <p>ทำงานในเครื่องนี้ทั้งหมด ไม่ส่งข้อมูลออกอินเทอร์เน็ต</p>
   <span class="spacer"></span>
+  <button id="btnTheme" type="button" aria-pressed="false"></button>
   <button id="btnJobs" type="button">งานที่บันทึกไว้ (<span id="jobsCount">0</span>)</button>
 </header>
 <div class="modal hidden" id="jobsModal" role="dialog" aria-label="งานที่บันทึกไว้">
@@ -1059,6 +1059,19 @@ $("jobsFile").onchange = async () => {
   } catch(e) { alert("นำเข้าไม่สำเร็จ: " + e.message); }
 };
 updateJobsCount();
+
+/* ---------- Dark mode switch (follows the system until chosen; remembered in this browser) ---------- */
+const sysDark = window.matchMedia("(prefers-color-scheme: dark)");
+const isDark = () => (document.documentElement.dataset.theme || (sysDark.matches ? "dark" : "light")) === "dark";
+function showTheme(){ const d = isDark(); $("btnTheme").textContent = d ? "☀️ โหมดสว่าง" : "🌙 โหมดมืด"; $("btnTheme").setAttribute("aria-pressed", String(d)); }
+try { const t = localStorage.getItem("sivgm_theme"); if (t === "dark" || t === "light") document.documentElement.dataset.theme = t; } catch(_) {}
+$("btnTheme").onclick = () => {
+  const t = isDark() ? "light" : "dark"; document.documentElement.dataset.theme = t;
+  try { localStorage.setItem("sivgm_theme", t); } catch(_) {}
+  showTheme();
+};
+sysDark.addEventListener("change", showTheme);
+showTheme();
 
 $("btnBuild").onclick = async () => {
   const msgs = validate(), errs = msgs.filter(m=>m[0]==="err").length;
