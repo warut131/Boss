@@ -13,7 +13,10 @@
    - ทีมตู้กรอกเฉพาะช่องสีเหลือง: Container No. · Seal No. · Tare weight (ช่องอื่นถูกล็อกไว้)
 4. ได้ไฟล์กลับมา → ลากมาวางในช่องเดิม ข้อมูลเข้าตารางเอง (ถ้าทีมตอบเป็นข้อความทาง LINE ใช้ "วางข้อความ")
 5. ดูแถบตรวจสอบ แล้วกด **ดาวน์โหลด SI / VGM**
-6. (ถ้าตั้ง Power Automate ไว้) กด **ไฟล์ส่งเข้า Report** แล้วบันทึกลง OneDrive "SIVGM Report Inbox" → Report_Shipment Export กรอกให้เอง — วิธีตั้งค่าดู [`power-automate/README.md`](power-automate/README.md)
+6. ไฟล์ติดตามงาน **Report_Shipment Export** (แบบพื้นฐาน):
+   - งานใหม่: ใส่ JOB No. → กด **คัดลอกแถวลง Report** → คลิกช่อง A ของแถวว่างแรกใน Report → Ctrl+V (ได้คอลัมน์ A–X 1 แถวต่อตู้ ในรูปแบบเดียวกับที่ทีมกรอก: 40DC, ชื่อเมือง, วันที่ cut off จาก PDF Shinki)
+   - ทีมตู้ส่งข้อมูลแล้ว: กด **คัดลอกเฉพาะ Container + Seal** → คลิกช่อง O ของแถวตู้แรกของงานนั้น → Ctrl+V
+   - (ตัวเลือก ปิดไว้เป็นค่าเริ่มต้น) ติ๊ก **ใช้ Power Automate** ถ้าตั้ง Flow แล้ว — วิธีตั้งค่าดู [`power-automate/README.md`](power-automate/README.md)
 
 ## สิ่งที่เครื่องมือกรอกให้
 | ชีต | ช่อง |

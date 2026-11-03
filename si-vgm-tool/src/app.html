@@ -186,8 +186,16 @@ table.xl{border-collapse:collapse;table-layout:fixed;font-family:Calibri,Arial,s
     <label style="flex:1;min-width:240px">ชื่อไฟล์ <input id="f_outname"></label>
     <button class="primary" id="btnBuild" type="button">ดาวน์โหลด SI / VGM</button>
   </div>
-  <div class="row" style="margin-top:8px">
-    <span class="muted" style="flex:1;min-width:240px">อัปเดต Report_Shipment Export อัตโนมัติ: บันทึกไฟล์นี้ลงโฟลเดอร์ OneDrive "SIVGM Report Inbox" (Power Automate จะกรอกให้)</span>
+  <h3 style="margin:14px 0 6px;font-size:14px">ไฟล์ติดตามงาน (Report_Shipment Export)</h3>
+  <div class="row">
+    <label style="width:170px">JOB No. <input id="f_job" placeholder="SRT-2611-006"></label>
+    <button id="btnCopyRows" type="button">คัดลอกแถวลง Report</button>
+    <button id="btnCopyCtr" type="button">คัดลอกเฉพาะ Container + Seal</button>
+  </div>
+  <p class="muted" id="copyResult" style="margin:4px 0 0">งานใหม่: คลิกช่อง A ของแถวว่างแถวแรกใน Report แล้ว Ctrl+V · งานเดิม: คลิกช่อง O ของแถวตู้แรกแล้ว Ctrl+V</p>
+  <label class="muted" style="flex-direction:row;gap:6px;align-items:center;margin-top:8px"><input type="checkbox" id="optPA" style="width:auto"> ใช้ Power Automate (ต้องตั้ง Flow ก่อน — ดู power-automate/README.md)</label>
+  <div class="row hidden" id="paRow" style="margin-top:6px">
+    <span class="muted" style="flex:1;min-width:240px">บันทึกไฟล์นี้ลงโฟลเดอร์ OneDrive "SIVGM Report Inbox" แล้ว Power Automate จะกรอก Report ให้</span>
     <button id="btnReport" type="button">ไฟล์ส่งเข้า Report</button>
   </div>
 </section>
@@ -964,6 +972,41 @@ function reportPayload(){
       pcs:num(c.pcs), kg:num(c.kg), cbm:num(c.cbm) })),
   };
 }
+// Basic hand-off: tab-separated rows in the report's column order (A..X) to paste into Excel.
+// Same conventions as the report itself (and the Office Script): 40DC, carrier without spaces, port = city.
+const REPORT_SIZE = { "40HQ":"40DC", "40GP":"40DC", "20GP":"20DC" };
+function reportRows(){
+  const p = reportPayload(), yes = b => b ? "TRUE" : "FALSE";
+  return p.containers.map((c,i) => [
+    $("f_job").value.trim(), c.loadDate, p.booking, i ? "" : p.containers.length, REPORT_SIZE[c.size] || c.size,
+    i ? "" : p.invoice, i ? "" : p.vessel, p.etd, p.carrier.replace(/\s+/g,"").toUpperCase(), p.port.toUpperCase(),
+    p.siCut, p.vgmCut, p.closing, p.returnCode, c.no, c.seal, "",
+    yes(p.preInvoice), "FALSE", yes(p.siReady), yes(p.vgmReady), "FALSE", "FALSE", "FALSE",
+  ]);
+}
+async function copyText(text){
+  try { await navigator.clipboard.writeText(text); return true; } catch(_) {}
+  const ta = document.createElement("textarea"); ta.value = text; document.body.appendChild(ta); ta.select();
+  const ok = document.execCommand("copy"); ta.remove(); return ok;
+}
+$("btnCopyRows").onclick = async () => {
+  if (!booking) return;
+  if (!$("f_job").value.trim() && !confirm("ยังไม่ได้ใส่ JOB No. — คัดลอกโดยเว้นช่อง JOB ว่างไว้หรือไม่?")) return;
+  const rows = reportRows();
+  const ok = await copyText(rows.map(r => r.join("\t")).join("\r\n"));
+  $("copyResult").textContent = ok ? `คัดลอก ${rows.length} แถว (A–X) แล้ว — คลิกช่อง A ของแถวว่างแรกใน Report แล้ว Ctrl+V · QTY/INV/VESSEL อยู่แถวแรก ถ้าต้องการให้ merge เองเหมือนงานอื่น` : "คัดลอกไม่สำเร็จ — เบราว์เซอร์ไม่อนุญาตคลิปบอร์ด";
+};
+$("btnCopyCtr").onclick = async () => {
+  if (!booking) return;
+  const rows = reportPayload().containers.map(c => [c.no, c.seal]);
+  if (!rows.some(r => r[0] || r[1])) { $("copyResult").textContent = "ยังไม่มีเลขตู้ / ซีลจากทีมตู้ — ยังไม่มีอะไรให้คัดลอก"; return; }
+  const ok = await copyText(rows.map(r => r.join("\t")).join("\r\n"));
+  $("copyResult").textContent = ok ? `คัดลอก Container + Seal ${rows.length} ตู้แล้ว — คลิกช่อง O ของแถวตู้แรกของงานนี้ใน Report แล้ว Ctrl+V` : "คัดลอกไม่สำเร็จ — เบราว์เซอร์ไม่อนุญาตคลิปบอร์ด";
+};
+// Power Automate is optional and off until switched on (remembered in this browser)
+try { $("optPA").checked = localStorage.getItem("sivgm_pa") === "1"; } catch(_) {}
+$("paRow").classList.toggle("hidden", !$("optPA").checked);
+$("optPA").onchange = () => { $("paRow").classList.toggle("hidden", !$("optPA").checked); try { localStorage.setItem("sivgm_pa", $("optPA").checked ? "1" : "0"); } catch(_) {} };
 $("btnReport").onclick = () => {
   if (!booking) return;
   if (!pdfDocs.shinki && !confirm("ยังไม่ได้วาง PDF Shinki — ช่อง SI/VGM cut off, Closing, Return ใน Report จะว่าง ต้องการทำต่อหรือไม่?")) return;
