@@ -128,7 +128,8 @@ table.xl{border-collapse:collapse;table-layout:fixed;font-family:Calibri,Arial,s
   <div class="status wait" id="teamStatus"></div>
   <div class="handoff">
     <div class="step"><b>① ส่งใบขอข้อมูลตู้</b><span class="muted">ไฟล์ Excel ที่ใส่ข้อมูล Booking ไว้แล้ว ทีมกรอกแค่ช่องสีเหลือง</span>
-      <button id="btnRequest" type="button">ดาวน์โหลดใบขอข้อมูลตู้</button></div>
+      <div class="row"><button id="btnRequest" type="button">ดาวน์โหลดใบขอข้อมูลตู้ (Excel)</button><button id="btnRequestLine" type="button">คัดลอกข้อความขอข้อมูล (LINE)</button></div>
+      <span class="muted" id="requestLineResult"></span></div>
     <div class="step"><b>② ทีมกรอกแล้วส่งกลับ</b><span class="muted">Container No. · Seal No. · Tare weight (kg) ทางอีเมล หรือ LINE</span></div>
     <div class="step"><b>③ นำข้อมูลเข้า</b><span class="muted">ลากไฟล์ที่ได้กลับมาวางในข้อ 1 หรือวางข้อความจาก LINE ด้านล่าง</span></div>
   </div>
@@ -612,18 +613,28 @@ function applyTeam(t, source){
   renderCtrs();
   return n;
 }
+// Reads what the container team types in LINE / e-mail. Accepts one box per line
+// ("1) TGHU1234565 / OOLKAB1234 / 3750"), labels in Thai or English ("ซีล:", "Tare 3,750 kg"),
+// or one value per line under the container number.
 function parsePaste(text){
   const list = [];
-  for (const line of text.split(/\r?\n/)) {
-    const joined = line.toUpperCase();
-    const m = /([A-Z]{4})[\s-]?(\d{6})[\s-]?(\d)/.exec(joined);
-    if (!m) continue;
-    const no = m[1]+m[2]+m[3], rest = joined.replace(m[0]," ").split(/[\s;|\t]+|,(?!\d{3}\b)/).filter(Boolean);
-    let tare = "", seal = "";
-    for (const t of rest) { const v = num(t);
-      if (!tare && /^[\d,]+(\.\d+)?$/.test(t) && v >= 1000 && v <= 10000) tare = v;
-      else if (!seal && /[A-Z0-9]{4,}/.test(t) && !/^(KG|KGS|TARE|SEAL)$/.test(t)) seal = t.replace(/[^A-Z0-9]/g,""); }
-    list.push({ idx: list.length+1, no, seal, tare });
+  const fill = (item, line) => {
+    const toks = line.replace(/[:：\/]/g," ").replace(/(\d)\s*KGS?\b/g,"$1").split(/[\s;|\t]+|,(?!\d{3}\b)/).filter(Boolean);
+    for (const t of toks) { const v = num(t);
+      if (item.tare === "" && /^[\d,]+(\.\d+)?$/.test(t) && v >= 1000 && v <= 10000) item.tare = v;
+      else if (!item.seal && /^[A-Z0-9-]{4,}$/.test(t) && /\d/.test(t) && !/^\d{1,4}$/.test(t)) item.seal = t.replace(/[^A-Z0-9]/g,""); }
+  };
+  for (const raw of text.split(/\r?\n/)) {
+    const line = raw.toUpperCase();
+    const m = /\b([A-Z]{3}[UJZ])[\s-]?(\d{6})[\s-]?(\d)\b/.exec(line); // ISO 6346: owner code ends in U/J/Z
+    if (m) {
+      const lead = /^\s*(?:(?:#|NO\.?|ตู้(?:ที่)?)\s*(\d{1,2})\s*[).:\-]?|(\d{1,2})\s*[).:\-])\s/.exec(line);   // "1) ", "#2 ", "ตู้ที่ 3: "
+      const item = { idx: lead ? +(lead[1] || lead[2]) : list.length + 1, no: m[1]+m[2]+m[3], seal: "", tare: "" };
+      fill(item, line.replace(lead ? lead[0] : "", " ").replace(m[0], " "));
+      list.push(item);
+    } else if (list.length && (/SEAL|ซีล|TARE|น้ำหนัก|\bTW\b/.test(line) || line.trim().split(/\s+/).length === 1)) {
+      fill(list[list.length-1], line);   // value on its own line under the container
+    }
   }
   return { booking: "", list };
 }
@@ -738,6 +749,20 @@ $("btnPaste").onclick = () => {
   if (!t.list.length) { $("pasteResult").textContent = "ไม่พบเลขตู้ในข้อความ"; return; }
   const n = applyTeam(t, "ข้อความที่วาง");
   $("pasteResult").textContent = `นำเข้า ${n} ตู้แล้ว`;
+};
+// LINE request: booking summary + one numbered line per box; what is already known is pre-filled,
+// so the team only types what is missing and sends it back to paste above
+$("btnRequestLine").onclick = async () => {
+  if (!booking) return;
+  const lines = [
+    `ขอข้อมูลตู้ Booking ${$("f_booking").value} · ${$("f_pod").value.split(",")[0]} · ${$("f_vessel").value}`,
+    `${summary()} · โหลด ${[...new Set(ctrs.map(c => isoToText(c.date)).filter(Boolean))].join(", ")}`,
+    "รบกวนตอบกลับบรรทัดละตู้: เลขตู้ / ซีล / Tare (kg)",
+    ...ctrs.map((c,i) => { const known = [cleanNo(c.no), c.seal.trim(), c.tare === "" ? "" : num(c.tare)];
+      return `${i+1}) ` + (known.some(v => v !== "") ? known.join(" / ") : ""); }),
+  ];
+  const ok = await copyText(lines.join("\n"));
+  $("requestLineResult").textContent = ok ? "คัดลอกแล้ว — วางในแชท LINE ของทีมตู้ ได้คำตอบกลับมาให้วางในช่อง \"วางข้อความจาก LINE\" ด้านล่าง" : "คัดลอกไม่สำเร็จ";
 };
 $("btnRequest").onclick = async () => {
   const blob = await xlsxPackage(REQ_SHEET, requestXml(), REQ_STYLES);
@@ -947,11 +972,12 @@ function fill(si, vgm, att){
     att.set("B"+ar, c ? cleanNo(c.no) : ""); att.set("C"+ar, c ? c.seal.trim() : "");
     att.set("D"+ar, c ? num(c.pcs) : ""); att.set("F"+ar, c ? num(c.kg) : ""); att.set("H"+ar, c ? num(c.cbm) : "");
     if (!c || att.formula("J"+ar) === null || c.type !== "40HQ") att.set("J"+ar, c ? c.type : "");
-    vgm.set("B"+vr, c && c.date ? dateToSerial(c.date) : ""); vgm.set("C"+vr, c ? 2 : ""); vgm.set("G"+vr, c && c.tare !== "" ? num(c.tare) : ""); // unknown tare stays blank
+    // weighing date goes in with the real tare, not before
+    vgm.set("B"+vr, c && c.date && c.tare !== "" ? dateToSerial(c.date) : ""); vgm.set("C"+vr, c ? 2 : ""); vgm.set("G"+vr, c && c.tare !== "" ? num(c.tare) : ""); // unknown tare stays blank
     if (c) { // mark what the container team still owes us
       if (!c.no) { att.missing.add("B"+ar); att.touched.add("B"+ar); vgm.missing.add("A"+vr); vgm.touched.add("A"+vr); }
       if (!c.seal) { att.missing.add("C"+ar); att.touched.add("C"+ar); }
-      if (c.tare === "") { vgm.missing.add("G"+vr); vgm.touched.add("G"+vr); }
+      if (c.tare === "") { for (const col of ["B","G"]) { vgm.missing.add(col+vr); vgm.touched.add(col+vr); } }
       vgm.touched.add("A"+vr); vgm.touched.add("D"+vr); vgm.touched.add("H"+vr);
     }
   }
