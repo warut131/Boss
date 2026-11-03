@@ -56,6 +56,14 @@ table.ctr{border-collapse:collapse;width:100%;min-width:760px}
 .ctr tfoot td{font-weight:600}
 .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .spacer{flex:1}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:flex-start;justify-content:center;padding:40px 16px;z-index:50}
+.modal-box{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;width:min(1100px,100%);max-height:calc(100vh - 80px);display:flex;flex-direction:column;gap:8px}
+.modal-box .tablewrap{overflow:auto;flex:1}
+.jobs td{vertical-align:middle;white-space:nowrap}
+.jobs td.st{white-space:normal}
+.tag{display:inline-block;font-size:11.5px;border-radius:99px;padding:1px 8px;margin:1px 2px 1px 0;background:var(--bg);color:var(--muted);white-space:nowrap}
+.tag.ok{background:var(--ok-bg);color:var(--ok)}
+.tag.wait{background:var(--warn-bg);color:var(--warn)}
 button{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:7px;padding:6px 12px;cursor:pointer}
 button:hover{border-color:var(--accent)}
 button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600;padding:9px 18px}
@@ -100,7 +108,29 @@ table.xl{border-collapse:collapse;table-layout:fixed;font-family:Calibri,Arial,s
 <header>
   <h1>SI / VGM Builder</h1>
   <p>ทำงานในเครื่องนี้ทั้งหมด ไม่ส่งข้อมูลออกอินเทอร์เน็ต</p>
+  <span class="spacer"></span>
+  <button id="btnJobs" type="button">งานที่บันทึกไว้ (<span id="jobsCount">0</span>)</button>
 </header>
+<div class="modal hidden" id="jobsModal" role="dialog" aria-label="งานที่บันทึกไว้">
+  <div class="modal-box">
+    <div class="row">
+      <h2 style="margin:0;font-size:16px">งานที่บันทึกไว้</h2><span class="spacer"></span>
+      <input id="jobsSearch" placeholder="ค้นหา Booking / Invoice / JOB / ปลายทาง" style="max-width:280px">
+      <button id="jobsClose" type="button">ปิด</button>
+    </div>
+    <p class="muted" style="margin:0">เก็บไว้ในเครื่องมือนี้บนเบราว์เซอร์ของเครื่องนี้ · กด "เปิด" เพื่อทำงานต่อ (เช่น ตอนทีมตู้ส่งข้อมูลมา) · ถ้าล้างข้อมูลเบราว์เซอร์จะหาย — กด "ส่งออกไฟล์สำรอง" เก็บไว้เป็นระยะ</p>
+    <div class="tablewrap"><table class="ctr jobs">
+      <thead><tr><th>Booking</th><th>JOB</th><th>Invoice</th><th>ปลายทาง</th><th>ETD</th><th>ตู้</th><th>สถานะ</th><th>บันทึกล่าสุด</th><th></th></tr></thead>
+      <tbody id="jobsBody"></tbody>
+    </table></div>
+    <div class="row">
+      <button id="jobsExport" type="button">ส่งออกไฟล์สำรอง</button>
+      <button id="jobsImport" type="button">นำเข้าไฟล์สำรอง</button>
+      <input type="file" id="jobsFile" accept=".json" hidden>
+      <span class="muted" id="jobsNote"></span>
+    </div>
+  </div>
+</div>
 <div class="app">
 <div class="left">
 
@@ -185,8 +215,10 @@ table.xl{border-collapse:collapse;table-layout:fixed;font-family:Calibri,Arial,s
   <ul class="msgs" id="msgs"></ul>
   <div class="row">
     <label style="flex:1;min-width:240px">ชื่อไฟล์ <input id="f_outname"></label>
+    <button id="btnSave" type="button">บันทึกงาน</button>
     <button class="primary" id="btnBuild" type="button">ดาวน์โหลด SI / VGM</button>
   </div>
+  <p class="muted" id="saveInfo" style="margin:4px 0 0">บันทึกงานไว้ แล้วกลับมาเปิดต่อได้จากปุ่ม "งานที่บันทึกไว้" มุมบนขวา (บันทึกให้อัตโนมัติด้วยตอนดาวน์โหลด SI / คัดลอกลง Report)</p>
   <h3 style="margin:14px 0 6px;font-size:14px">ไฟล์ติดตามงาน (Report_Shipment Export)</h3>
   <div class="row">
     <label style="width:170px">JOB No. <input id="f_job" placeholder="SRT-2611-006"></label>
@@ -667,6 +699,7 @@ async function handleFiles(files){
       }
       if (x.kind === "template") { await loadTemplate(x.buf, x.file.name);
         try { localStorage.setItem("sivgm_tpl", JSON.stringify({ name:x.file.name, data: b64(x.buf) })); } catch(_){} }
+      else if (x.kind === "booking" && loadJobs()[x.data.booking] && confirm(`Booking ${x.data.booking} บันทึกไว้แล้ว (มีข้อมูลตู้/PDF ที่ทำไว้)\nเปิดงานที่บันทึกไว้ทำต่อหรือไม่? (ยกเลิก = เริ่มใหม่จากไฟล์นี้)`)) { openJob(x.data.booking); }
       else if (x.kind === "booking") { booking = x.data; resetPdfs(); $("chipBooking").textContent = "Booking: " + x.file.name; $("chipBooking").className = "chip done"; fillFromBooking(); }
       else if (x.kind === "team") {
         if (!booking) { alert("วาง Booking Request ก่อน แล้วค่อยวางไฟล์ข้อมูลตู้"); continue; }
@@ -786,7 +819,7 @@ function refresh(){
       + `<td class="num">${fmtInt(s.pcs)}</td><td class="num">${fmtInt(s.kg)}</td><td class="num">${s.cbm.toFixed(3)}</td><td colspan="2"></td>`;
     const got = ctrs.filter(c => c.no && c.seal).length;
     const st = $("teamStatus");
-    if (got === ctrs.length) { st.className = "status done"; st.textContent = `✔ ได้ข้อมูลตู้ครบ ${got}/${ctrs.length} ตู้` + (teamInfo ? ` · จาก ${teamInfo.source} เวลา ${teamInfo.at.toLocaleTimeString("th-TH",{hour:"2-digit",minute:"2-digit"})}` : ""); }
+    if (got === ctrs.length) { st.className = "status done"; st.textContent = `✔ ได้ข้อมูลตู้ครบ ${got}/${ctrs.length} ตู้` + (teamInfo ? ` · จาก ${teamInfo.source} เวลา ${new Date(teamInfo.at).toLocaleTimeString("th-TH",{hour:"2-digit",minute:"2-digit"})}` : ""); }
     else { st.className = "status wait"; st.textContent = `⏳ รอข้อมูลจากทีมตู้ — ได้แล้ว ${got}/${ctrs.length} ตู้`; }
     $("chipTeam").textContent = `ข้อมูลตู้: ${got}/${ctrs.length}`; $("chipTeam").className = "chip " + (got === ctrs.length ? "done" : "wait");
     validate();
@@ -1047,6 +1080,7 @@ $("btnCopyRows").onclick = async () => {
   if (!$("f_job").value.trim() && !confirm("ยังไม่ได้ใส่ JOB No. — คัดลอกโดยเว้นช่อง JOB ว่างไว้หรือไม่?")) return;
   const rows = reportRows();
   const ok = await copyText(rows.map(r => r.join("\t")).join("\r\n"));
+  if (ok) saveJob("report");
   $("copyResult").textContent = ok ? `คัดลอก ${rows.length} แถว (A–X) แล้ว — คลิกช่อง A ของแถวว่างแรกใน Report แล้ว Ctrl+V · QTY/INV/VESSEL อยู่แถวแรก ถ้าต้องการให้ merge เองเหมือนงานอื่น` : "คัดลอกไม่สำเร็จ — เบราว์เซอร์ไม่อนุญาตคลิปบอร์ด";
 };
 $("btnCopyCtr").onclick = async () => {
@@ -1054,6 +1088,7 @@ $("btnCopyCtr").onclick = async () => {
   const rows = reportPayload().containers.map(c => [c.no, c.seal]);
   if (!rows.some(r => r[0] || r[1])) { $("copyResult").textContent = "ยังไม่มีเลขตู้ / ซีลจากทีมตู้ — ยังไม่มีอะไรให้คัดลอก"; return; }
   const ok = await copyText(rows.map(r => r.join("\t")).join("\r\n"));
+  if (ok) saveJob("reportCtr");
   $("copyResult").textContent = ok ? `คัดลอก Container + Seal ${rows.length} ตู้แล้ว — คลิกช่อง O ของแถวตู้แรกของงานนี้ใน Report แล้ว Ctrl+V` : "คัดลอกไม่สำเร็จ — เบราว์เซอร์ไม่อนุญาตคลิปบอร์ด";
 };
 // Power Automate is optional and off until switched on (remembered in this browser)
@@ -1067,12 +1102,90 @@ $("btnReport").onclick = () => {
   download(new Blob([JSON.stringify(p, null, 1)], { type:"application/json" }), `SIVGM_REPORT_${p.booking || "NOBOOKING"}.json`);
 };
 
+/* ---------- Saved jobs: kept in this tool's browser storage, one record per booking ---------- */
+const JOBS_KEY = "sivgm_jobs";
+const JOB_FIELDS = ["f_booking","f_invoice","f_vessel","f_pol","f_pod","f_del","f_desc","f_line","f_cycut","f_etd","f_commodity","f_sino","f_outname","f_job","p_consignee","p_notify","p_agent"];
+function loadJobs(){ try { return JSON.parse(localStorage.getItem(JOBS_KEY) || "{}") || {}; } catch(_) { return {}; } }
+function storeJobs(jobs){ localStorage.setItem(JOBS_KEY, JSON.stringify(jobs)); updateJobsCount(); }
+function updateJobsCount(){ $("jobsCount").textContent = Object.keys(loadJobs()).length; }
+const fmtWhen = iso => { const d = new Date(iso); return `${d.getDate()}-${MON(d.getMonth())} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`; };
+function saveJob(step){
+  if (!booking) return false;
+  const key = $("f_booking").value.trim() || booking.booking;
+  if (!key) { alert("ยังไม่มี Booking No. — บันทึกไม่ได้"); return false; }
+  const jobs = loadJobs(), old = jobs[key] || {}, now = new Date().toISOString();
+  jobs[key] = { key, createdAt: old.createdAt || now, savedAt: now, booking, ctrs, pdfDocs, teamInfo,
+    fields: Object.fromEntries(JOB_FIELDS.map(id => [id, $(id).value])), done: { ...(old.done || {}), ...(step ? { [step]: now } : {}) } };
+  try { storeJobs(jobs); } catch(e) { alert("บันทึกไม่สำเร็จ (พื้นที่เบราว์เซอร์เต็ม?) — กด ส่งออกไฟล์สำรอง แล้วลบงานเก่า: " + e.message); return false; }
+  $("saveInfo").textContent = `บันทึก Booking ${key} แล้ว ${fmtWhen(now)}`;
+  return true;
+}
+function openJob(key){
+  const r = loadJobs()[key]; if (!r) return;
+  booking = r.booking; fillFromBooking();
+  ctrs = r.ctrs || ctrs; teamInfo = r.teamInfo || null;
+  for (const [id,v] of Object.entries(r.fields || {})) if ($(id)) $(id).value = v;
+  resetPdfs(); pdfDocs = { shinki: null, invoice: null, ...(r.pdfDocs || {}) };
+  if (pdfDocs.shinki) { $("chipShinki").textContent = "Shinki PDF: " + pdfDocs.shinki.file; $("chipShinki").className = "chip done"; }
+  if (pdfDocs.invoice) { $("chipInvoice").textContent = "C Invoice PDF: " + pdfDocs.invoice.file; $("chipInvoice").className = "chip done"; }
+  $("chipBooking").textContent = `Booking: ${key} (เปิดจากที่บันทึกไว้)`; $("chipBooking").className = "chip done";
+  $("saveInfo").textContent = `เปิดงาน Booking ${key} (บันทึกล่าสุด ${fmtWhen(r.savedAt)})`;
+  renderCtrs(); closeJobs();
+}
+function jobTags(r){
+  const c = r.ctrs || [], n = c.length, d = r.done || {};
+  const got = c.filter(x => x.no && x.seal).length, tare = c.filter(x => x.tare !== "" && x.tare != null).length;
+  const tag = (ok, text) => `<span class="tag ${ok ? "ok" : "wait"}">${esc(text)}</span>`;
+  return [tag(got === n, `ตู้/ซีล ${got}/${n}`), tag(tare === n, `Tare ${tare}/${n}`),
+    tag(!!(r.pdfDocs && r.pdfDocs.shinki && r.pdfDocs.invoice), "PDF"),
+    d.si ? tag(true, `SI ${fmtWhen(d.si)}`) : tag(false, "ยังไม่ดาวน์โหลด SI"),
+    d.report ? tag(true, "ลง Report") : "", d.reportCtr ? tag(true, "ตู้ลง Report") : ""].join("");
+}
+function renderJobs(){
+  const q = norm($("jobsSearch").value), list = Object.values(loadJobs())
+    .filter(r => !q || norm([r.key, r.fields && r.fields.f_job, r.fields && r.fields.f_invoice, r.fields && r.fields.f_pod].join(" ")).includes(q))
+    .sort((a,b) => b.savedAt.localeCompare(a.savedAt));
+  $("jobsBody").innerHTML = list.length ? list.map(r => { const f = r.fields || {};
+    return `<tr><td><b>${esc(r.key)}</b></td><td>${esc(f.f_job || "")}</td><td>${esc(f.f_invoice || "")}</td><td>${esc((f.f_pod || "").split(",")[0])}</td>
+      <td>${esc(r.booking && r.booking.etd || "")}</td><td>${(r.ctrs || []).length}</td><td class="st">${jobTags(r)}</td><td>${fmtWhen(r.savedAt)}</td>
+      <td style="white-space:nowrap"><button type="button" data-open="${esc(r.key)}">เปิด</button> <button type="button" data-del="${esc(r.key)}">ลบ</button></td></tr>`; }).join("")
+    : `<tr><td colspan="9" class="muted">${q ? "ไม่พบงานที่ค้นหา" : "ยังไม่มีงานที่บันทึกไว้"}</td></tr>`;
+}
+const closeJobs = () => $("jobsModal").classList.add("hidden");
+$("btnJobs").onclick = () => { $("jobsNote").textContent = ""; renderJobs(); $("jobsModal").classList.remove("hidden"); $("jobsSearch").focus(); };
+$("jobsClose").onclick = closeJobs;
+$("jobsModal").addEventListener("click", e => { if (e.target === $("jobsModal")) closeJobs(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeJobs(); });
+$("jobsSearch").oninput = renderJobs;
+$("jobsBody").addEventListener("click", e => {
+  const o = e.target.closest("[data-open]"), d = e.target.closest("[data-del]");
+  if (o) openJob(o.dataset.open);
+  if (d && confirm(`ลบงาน Booking ${d.dataset.del} ออกจากรายการที่บันทึกไว้?`)) { const j = loadJobs(); delete j[d.dataset.del]; storeJobs(j); renderJobs(); }
+});
+$("btnSave").onclick = () => saveJob();
+$("jobsExport").onclick = () => {
+  const d = new Date(), stamp = `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,"0")}${String(d.getDate()).padStart(2,"0")}`;
+  download(new Blob([JSON.stringify({ type:"SIVGM_JOBS", version:1, jobs: loadJobs() })], { type:"application/json" }), `SIVGM_JOBS_BACKUP_${stamp}.json`);
+};
+$("jobsImport").onclick = () => $("jobsFile").click();
+$("jobsFile").onchange = async () => {
+  const f = $("jobsFile").files[0]; $("jobsFile").value = ""; if (!f) return;
+  try {
+    const data = JSON.parse(await f.text()); if (data.type !== "SIVGM_JOBS") throw new Error("ไม่ใช่ไฟล์สำรองของเครื่องมือนี้");
+    const jobs = loadJobs(); let n = 0;
+    for (const [k,r] of Object.entries(data.jobs || {})) if (!jobs[k] || jobs[k].savedAt < r.savedAt) { jobs[k] = r; n++; } // newer copy wins
+    storeJobs(jobs); renderJobs(); $("jobsNote").textContent = `นำเข้า ${n} งาน`;
+  } catch(e) { alert("นำเข้าไม่สำเร็จ: " + e.message); }
+};
+updateJobsCount();
+
 $("btnBuild").onclick = async () => {
   const msgs = validate(), errs = msgs.filter(m=>m[0]==="err").length;
   if (errs && !confirm(`ยังขาดข้อมูล ${errs} จุด ต้องการดาวน์โหลดทั้งที่ยังไม่ครบหรือไม่?`)) return;
   try {
     let name = $("f_outname").value.trim() || "SI_VGM.xlsx"; if (!/\.xlsx$/i.test(name)) name += ".xlsx";
     download(await build(), name);
+    saveJob("si");
   } catch(e) { alert("สร้างไฟล์ไม่สำเร็จ: " + e.message); console.error(e); }
 };
 
