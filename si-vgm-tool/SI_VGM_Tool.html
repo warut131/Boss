@@ -416,12 +416,12 @@ async function detect(file){
 /* ---------- PDF cross-check: Shinki booking confirmation + Commercial (C) Invoice ---------- */
 // PDF.js and Tesseract are embedded by build.py (gzip + base64) and only unpacked when a PDF is dropped
 let pdfDocs = { shinki:null, invoice:null }, pdfLibs = null, ocrWorker = null;
-async function libUrl(id, type){
+async function libBlob(id){
   const el = document.getElementById(id); if (!el) throw new Error("ไฟล์นี้ไม่มีตัวอ่าน PDF ในตัว (ใช้ไฟล์ที่ build แล้ว)");
-  let blob = new Blob([unb64(el.textContent.trim())]);
-  if (el.dataset.gz) blob = await new Response(blob.stream().pipeThrough(new DecompressionStream("gzip"))).blob();
-  return URL.createObjectURL(new Blob([blob], { type }));
+  const blob = new Blob([unb64(el.textContent.trim())]);
+  return el.dataset.gz ? new Response(blob.stream().pipeThrough(new DecompressionStream("gzip"))).blob() : blob;
 }
+const libUrl = async (id, type) => URL.createObjectURL(new Blob([await libBlob(id)], { type }));
 const addScript = src => new Promise((res,rej) => { const s = document.createElement("script"); s.src = src; s.onload = res; s.onerror = () => rej(new Error("โหลดตัวอ่าน PDF ไม่ได้")); document.head.appendChild(s); });
 function loadPdfLibs(){
   return pdfLibs ||= (async () => {
@@ -432,10 +432,13 @@ function loadPdfLibs(){
 function getOcr(){
   return ocrWorker ||= (async () => {
     await addScript(await libUrl("lib-tess", "text/javascript"));
-    const lang = await libUrl("lib-eng", "application/octet-stream"), core = await libUrl("lib-tess-core", "text/javascript"), wk = await libUrl("lib-tess-worker", "text/javascript");
-    // the OCR worker fetches "<langPath>/eng.traineddata.gz" — answer it from the embedded copy, nothing goes online
-    const wrapper = URL.createObjectURL(new Blob([`const f=self.fetch.bind(self);self.fetch=(u,o)=>f(/traineddata/.test(String(u))?${JSON.stringify(lang)}:u,o);importScripts(${JSON.stringify(wk)});`], { type:"text/javascript" }));
-    return Tesseract.createWorker("eng", 1, { workerPath:wrapper, workerBlobURL:false, corePath:core+"#.js", langPath:"embedded", cacheMethod:"none", gzip:true });
+    // One self-contained worker: opened from file://, Chrome lets a blob worker load nothing else
+    // (no importScripts / fetch of other blobs), so the OCR engine goes in the same script and the
+    // worker's request for "<langPath>/eng.traineddata.gz" is answered from the embedded copy.
+    const [core, wk] = await Promise.all([libBlob("lib-tess-core"), libBlob("lib-tess-worker")].map(p => p.then(b => b.text())));
+    const lang = $("lib-eng").textContent.trim();
+    const src = new Blob([`const __LANG=${JSON.stringify(lang)};self.fetch=u=>/traineddata/.test(String(u))?Promise.resolve(new Response(Uint8Array.from(atob(__LANG),c=>c.charCodeAt(0)))):Promise.reject(new Error("offline"));\n`, core, "\n", wk], { type:"text/javascript" });
+    return Tesseract.createWorker("eng", 1, { workerPath:URL.createObjectURL(src), workerBlobURL:false, corePath:"embedded.js", langPath:"embedded", cacheMethod:"none", gzip:true });
   })().catch(e => { ocrWorker = null; throw e; });
 }
 async function readPdf(file){
@@ -682,7 +685,7 @@ fileInput.addEventListener("change", () => { handleFiles([...fileInput.files]); 
 
 async function handleFiles(files){
   const found = [];
-  for (const f of files) { try { found.push(await detect(f)); } catch(e) { alert(e.message);
+  for (const f of files) { try { found.push(await detect(f)); } catch(e) { alert(`อ่านไฟล์ ${f.name} ไม่ได้: ${(e && e.message) || e}`);
     if ($("chipShinki").classList.contains("wait")) { $("chipShinki").textContent = "Shinki PDF: อ่านไม่ได้"; $("chipShinki").className = "chip"; } } }
   const order = { template:0, booking:1, team:2, shinki:3, invoice:3, skip:4 };
   found.sort((a,b) => order[a.kind]-order[b.kind]);
@@ -1074,7 +1077,7 @@ async function copyText(text){
 }
 $("btnCopyRows").onclick = async () => {
   if (!booking) return;
-  if (!pdfDocs.shinki) { $("copyResult").textContent = "ยังไม่ได้วาง PDF ใบยืนยัน Shinki — SI Cut off, VGM Cut off, Closing และ Return อยู่ใน PDF นี้ วางไฟล์ในข้อ 1 ก่อนแล้วกดคัดลอกอีกครั้ง"; return; }
+  if (!pdfDocs.shinki) { const m = "ยังไม่มีข้อมูลจาก PDF ใบยืนยัน Shinki — SI Cut off, VGM Cut off, Closing และ Return อยู่ใน PDF นี้\nวางไฟล์ในข้อ 1 ก่อน (ดูที่ป้าย \"Shinki PDF\" ว่าอ่านได้แล้ว) แล้วกดคัดลอกอีกครั้ง"; $("copyResult").textContent = m; alert(m); return; }
   const sh = pdfDocs.shinki, unread = [["SI Cut off",sh.siCut],["VGM Cut off",sh.vgmCut],["Closing",sh.closing],["Return",sh.returnCode]].filter(x => !x[1]).map(x => x[0]);
   if (unread.length && !confirm(`อ่าน ${unread.join(", ")} จาก PDF Shinki ไม่ออก ช่องนั้นจะว่าง — คัดลอกต่อหรือไม่?`)) return;
   if (!$("f_job").value.trim() && !confirm("ยังไม่ได้ใส่ JOB No. — คัดลอกโดยเว้นช่อง JOB ว่างไว้หรือไม่?")) return;
