@@ -1060,14 +1060,15 @@ async function copyText(text){
 }
 $("btnCopyRows").onclick = async () => {
   if (!booking) return;
-  if (!pdfDocs.shinki) { const m = "ยังไม่มีข้อมูลจาก PDF ใบยืนยัน Shinki — SI Cut off, VGM Cut off, Closing และ Return อยู่ใน PDF นี้\nวางไฟล์ในข้อ 1 ก่อน (ดูที่ป้าย \"Shinki PDF\" ว่าอ่านได้แล้ว) แล้วกดคัดลอกอีกครั้ง"; $("copyResult").textContent = m; alert(m); return; }
-  const sh = pdfDocs.shinki, unread = [["SI Cut off",sh.siCut],["VGM Cut off",sh.vgmCut],["Closing",sh.closing],["Return",sh.returnCode]].filter(x => !x[1]).map(x => x[0]);
-  if (unread.length && !confirm(`อ่าน ${unread.join(", ")} จาก PDF Shinki ไม่ออก ช่องนั้นจะว่าง — คัดลอกต่อหรือไม่?`)) return;
+  // the Shinki PDF fills SI/VGM cut off, closing and return — without it those cells stay blank (a warning, not a stop)
+  const sh = pdfDocs.shinki || {}, unread = [["SI Cut off",sh.siCut],["VGM Cut off",sh.vgmCut],["Closing",sh.closing],["Return",sh.returnCode]].filter(x => !x[1]).map(x => x[0]);
+  const warn = !pdfDocs.shinki ? " · ⚠ ยังไม่มี PDF Shinki: SI Cut off, VGM Cut off, Return ว่าง (Closing ใช้ CY Cut จาก Booking)" : unread.length ? ` · ⚠ อ่าน ${unread.join(", ")} จาก PDF Shinki ไม่ออก ช่องนั้นว่าง` : "";
   if (!$("f_job").value.trim() && !confirm("ยังไม่ได้ใส่ JOB No. — คัดลอกโดยเว้นช่อง JOB ว่างไว้หรือไม่?")) return;
   const rows = reportRows();
   const ok = await copyText(rows.map(r => r.join("\t")).join("\r\n"));
   if (ok) saveJob("report");
-  $("copyResult").textContent = ok ? `คัดลอก ${rows.length} แถว (A–X) แล้ว — คลิกช่อง A ของแถวว่างแรกใน Report แล้ว Ctrl+V · QTY/INV/VESSEL อยู่แถวแรก ถ้าต้องการให้ merge เองเหมือนงานอื่น` : "คัดลอกไม่สำเร็จ — เบราว์เซอร์ไม่อนุญาตคลิปบอร์ด";
+  $("copyResult").style.color = ok && warn ? "var(--warn)" : "";
+  $("copyResult").textContent = ok ? `คัดลอก ${rows.length} แถว (A–X) แล้ว — คลิกช่อง A ของแถวว่างแรกใน Report แล้ว Ctrl+V · QTY/INV/VESSEL อยู่แถวแรก ถ้าต้องการให้ merge เองเหมือนงานอื่น` + warn : "คัดลอกไม่สำเร็จ — เบราว์เซอร์ไม่อนุญาตคลิปบอร์ด";
 };
 $("btnCopyCtr").onclick = async () => {
   if (!booking) return;
