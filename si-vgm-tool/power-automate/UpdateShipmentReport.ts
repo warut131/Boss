@@ -8,7 +8,7 @@
  * Columns, merges and formats follow the existing sheet; nothing else in the workbook is touched.
  */
 
-interface Ctr { seq: number; loadDate: string; size: string; no: string; seal: string; tare: number | null; }
+interface Ctr { seq: number; loadDate: string; size: string; di?: string; no: string; seal: string; tare: number | null; }
 interface Payload {
   version: number; booking: string; invoice: string; vessel: string; etd: string; carrier: string; port: string;
   siCut: string; vgmCut: string; closing: string; returnCode: string;
@@ -19,9 +19,9 @@ const SHEET = "Shipment";
 const JOB_PREFIX = "SRT";
 // column letters as in the sheet's header row
 const C = { job: "A", load: "B", booking: "C", qty: "D", size: "E", inv: "F", vessel: "G", etd: "H", carrier: "I", port: "J",
-  siCut: "K", vgmCut: "L", closing: "M", ret: "N", ctr: "O", seal: "P", preInv: "R", si: "T", vgm: "U" };
-const LAST_COL = "AB";
-const CHECKBOX_COLS = ["R", "S", "T", "U", "V", "W", "X"];
+  siCut: "K", vgmCut: "L", closing: "M", ret: "N", di: "O", ctr: "P", seal: "Q", preInv: "S", si: "U", vgm: "V" };
+const LAST_COL = "AC";
+const CHECKBOX_COLS = ["S", "T", "U", "V", "W", "X", "Y"];
 const MERGED_PER_JOB = ["D", "F", "G"]; // QTY, INV, VESSEL span all rows of a job
 // the report writes every 40' box as "40DC"
 const SIZE_IN_REPORT: { [k: string]: string } = { "40HQ": "40DC", "40GP": "40DC", "20GP": "20DC" };
@@ -47,6 +47,7 @@ function updateRows(ws: ExcelScript.Worksheet, p: Payload, rows: number[]): stri
   const n = Math.min(rows.length, p.containers.length);
   for (let i = 0; i < n; i++) {
     const r = rows[i], c = p.containers[i];
+    if (c.di) ws.getRange(`${C.di}${r}`).setValue(asNum(c.di));
     if (c.no) ws.getRange(`${C.ctr}${r}`).setValue(c.no);
     if (c.seal) ws.getRange(`${C.seal}${r}`).setValue(c.seal);
     if (p.preInvoice) ws.getRange(`${C.preInv}${r}`).setValue(true);
@@ -94,6 +95,7 @@ function addRows(ws: ExcelScript.Worksheet, p: Payload, last: number, colA: (str
     if (p.vgmCut) set(C.vgmCut, serial(p.vgmCut));
     if (p.closing) set(C.closing, serial(p.closing));
     if (p.returnCode) set(C.ret, ret);
+    if (c.di) set(C.di, asNum(c.di));
     if (c.no) set(C.ctr, c.no);
     if (c.seal) set(C.seal, c.seal);
     for (const col of CHECKBOX_COLS) set(col, false);
@@ -107,6 +109,9 @@ function addRows(ws: ExcelScript.Worksheet, p: Payload, last: number, colA: (str
   if (n > 1) for (const col of MERGED_PER_JOB) ws.getRange(`${col}${first}:${col}${end}`).merge(false);
   return `เพิ่ม ${job} (booking ${p.booking}) ${n} ตู้ แถว ${first}–${end}`;
 }
+
+// "1143891" -> number, as Excel stores a typed DI
+function asNum(v: string): string | number { return /^\d+$/.test(v) ? Number(v) : v; }
 
 // "2026-11-03" -> Excel date serial
 function serial(iso: string): number {

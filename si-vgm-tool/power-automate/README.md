@@ -52,7 +52,7 @@ Power Automate (เห็นไฟล์ใหม่) ──> Excel: Run script 
 
 แต่ละงานกด 2 รอบ:
 1. **ได้ Booking + PDF จากลูกค้า** → script เพิ่มแถว 1 แถวต่อ 1 ตู้ พร้อมเลข JOB ใหม่ และติ๊ก PRE-INV
-2. **ทีมตู้ส่ง เลขตู้ / ซีล / Tare แล้ว** → script ใส่ Container + Seal ลงแถวเดิม และติ๊ก SI (เมื่อมีเลขตู้+ซีลครบทุกตู้) และ VGM (เมื่อมี Tare + วันชั่งครบทุกตู้)
+2. **ทีมตู้ส่ง เลขตู้ / ซีล / Tare แล้ว** → script ใส่ DI + Container + Seal ลงแถวเดิม และติ๊ก SI (เมื่อมีเลขตู้+ซีลครบทุกตู้) และ VGM (เมื่อมี Tare + วันชั่งครบทุกตู้)
 
 ## script กรอกอะไรบ้าง
 | คอลัมน์ | ที่มา | รูปแบบ (ตามไฟล์เดิม) |
@@ -63,6 +63,7 @@ Power Automate (เห็นไฟล์ใหม่) ──> Excel: Run script 
 | QTY / Size | จำนวนตู้ / ขนาด | 40HQ เขียนเป็น `40DC` ตามที่ทีมใช้ |
 | ETD / CARRIER / PORT | Booking | `YANG MING` → `YANGMING`, PORT เฉพาะชื่อเมือง |
 | SI Cut off / VGM Cut off / CLOSING / RETURN | PDF Shinki | RETURN = รหัส PPL เช่น `2836` |
+| DI | ช่องประเภทตู้ใน Booking (`40HC-1143891`) | `1143891` |
 | Container / Seal | ทีมตู้ | |
 | PRE-INV / SI / VGM | ติ๊กอัตโนมัติ (ไม่เคยเอาติ๊กออก) | |
 
@@ -71,5 +72,5 @@ Power Automate (เห็นไฟล์ใหม่) ──> Excel: Run script 
 ## ข้อควรรู้
 - ถ้า Booking มีอยู่แล้ว script จะ**อัปเดตแถวเดิม** ไม่เพิ่มซ้ำ ถ้าจำนวนแถวใน Report ไม่เท่าจำนวนตู้ จะแจ้งเตือนในข้อความผลลัพธ์
 - ถ้าไม่ได้วาง PDF Shinki ช่อง SI/VGM Cut off และ RETURN จะว่าง (CLOSING ใช้ CY Cut จาก Booking แทน)
-- ถ้าแถวใหม่ไม่มีช่อง checkbox ให้เลือกช่อง R:X ของแถวนั้น แล้ว Insert › Checkbox (script ใส่ค่า TRUE/FALSE ไว้แล้ว)
+- ถ้าแถวใหม่ไม่มีช่อง checkbox ให้เลือกช่อง S:Y ของแถวนั้น แล้ว Insert › Checkbox (script ใส่ค่า TRUE/FALSE ไว้แล้ว)
 - ทดสอบ logic ของ script แล้ว (จำลอง Excel บนข้อมูลจริงของไฟล์ Report): งานเดิม SRT-2611-002 อัปเดตเลขตู้/ซีล/ติ๊กถูกแถว · งานใหม่จากข้อมูลงาน 005 ได้แถวที่ตรงกับที่ทีมกรอกเองทุกคอลัมน์ — **แต่ยังไม่ได้รันใน Excel / Power Automate จริง** ให้ทดสอบกับสำเนาไฟล์ Report ก่อนชี้ Flow ไปที่ไฟล์ทีม

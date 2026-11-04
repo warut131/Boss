@@ -208,7 +208,7 @@ table.xl{border-collapse:collapse;table-layout:fixed;font-family:Calibri,Arial,s
     <button id="btnCopyRows" type="button">คัดลอกแถวลง Report</button>
     <button id="btnCopyCtr" type="button">คัดลอกเฉพาะ Container + Seal</button>
   </div>
-  <p class="muted" id="copyResult" style="margin:4px 0 0">งานใหม่: คลิกช่อง A ของแถวว่างแถวแรกใน Report แล้ว Ctrl+V · งานเดิม: คลิกช่อง O ของแถวตู้แรกแล้ว Ctrl+V</p>
+  <p class="muted" id="copyResult" style="margin:4px 0 0">งานใหม่: คลิกช่อง A ของแถวว่างแถวแรกใน Report แล้ว Ctrl+V · งานเดิม: คลิกช่อง P (Container) ของแถวตู้แรกแล้ว Ctrl+V</p>
   <label class="muted" style="flex-direction:row;gap:6px;align-items:center;margin-top:8px"><input type="checkbox" id="optPA" style="width:auto"> ใช้ Power Automate (ต้องตั้ง Flow ก่อน — ดู power-automate/README.md)</label>
   <div class="row hidden" id="paRow" style="margin-top:6px">
     <span class="muted" style="flex:1;min-width:240px">บันทึกไฟล์นี้ลงโฟลเดอร์ OneDrive "SIVGM Report Inbox" แล้ว Power Automate จะกรอก Report ให้</span>
@@ -336,7 +336,8 @@ function parseBooking(cells, sheetName){
       if (first==="SUB TOTAL") continue;
       if (first==="TOTAL") { b.total = { qty:+get(r,col.qty)||0, pcs:+get(r,col.pcs)||0, kg:+get(r,col.kg)||0, cbm:+get(r,col.cbm)||0 }; break; }
       if (!get(r,col.type)) continue;
-      b.lines.push({ date: dateText(get(r,col.date)), type: normType(String(get(r,col.type)).split("-")[0]),
+      const typeCell = String(get(r,col.type)).trim();   // "40HC-1143891" = size - DI (delivery instruction) no.
+      b.lines.push({ date: dateText(get(r,col.date)), type: normType(typeCell.split("-")[0]), di: typeCell.split("-").slice(1).join("-").trim(),
         qty: Math.max(1, parseInt(get(r,col.qty))||1), pcs:+get(r,col.pcs)||0, kg:+get(r,col.kg)||0, cbm:+get(r,col.cbm)||0,
         ctrNo: cleanNo(get(r,col.ctr)), seal: String(get(r,col.seal)).trim().toUpperCase(), tare: String(get(r,col.tare)).trim() === "" ? "" : num(get(r,col.tare)) });
     }
@@ -640,7 +641,7 @@ function fillFromBooking(){
   $("f_line").value = b.line; $("f_cycut").value = b.cyCut; $("f_etd").value = `${b.etd} / ${b.eta}`;
   $("f_commodity").value = b.commodity; $("f_sino").value = [b.siNo, b.shipCode].filter(Boolean).join(" / ");
   ctrs = []; teamInfo = null;
-  for (const l of b.lines) for (let i=0;i<l.qty;i++) ctrs.push(newCtr({ type:l.type,
+  for (const l of b.lines) for (let i=0;i<l.qty;i++) ctrs.push(newCtr({ type:l.type, di: l.qty===1 ? (l.di || "") : "",
     pcs: l.qty===1 ? l.pcs : "", kg: l.qty===1 ? l.kg : "", cbm: l.qty===1 ? l.cbm : "", date: textToIso(l.date) }));
   if (!ctrs.length) ctrs.push(blankCtr());
   $("form").classList.remove("hidden");
@@ -648,7 +649,7 @@ function fillFromBooking(){
   renderCtrs();
 }
 function newCtr(o){ const type = o.type || "40HQ";
-  return { no:"", seal:"", type, pcs:"", kg:"", cbm:"", tare:"", tareSet:false, date:"", fromTeam:{}, ...o }; }
+  return { no:"", seal:"", di:"", type, pcs:"", kg:"", cbm:"", tare:"", tareSet:false, date:"", fromTeam:{}, ...o }; }
 function blankCtr(){ const p = ctrs[ctrs.length-1] || {}; return newCtr({ type:p.type, date:p.date||"" }); }
 function setOutName(){
   const city = $("f_pod").value.split(",")[0].trim() || "DEST";
@@ -913,6 +914,12 @@ async function build(){
 }
 
 /* ---------- Hand-off to the shipment report (Power Automate + Office Script) ---------- */
+// DI no. of a container; jobs saved before DI was stored take it from the booking line (one row = one box)
+function ctrDi(c,i){
+  if (c.di) return c.di;
+  const ls = (booking && booking.lines) || [];
+  return ls.length === ctrs.length && ls[i] ? (ls[i].di || "") : "";
+}
 function reportPayload(){
   const sh = pdfDocs.shinki || {}, cy = textToIso(booking.cyCut);
   const done = k => ctrs.every(c => k(c));
@@ -924,11 +931,11 @@ function reportPayload(){
     preInvoice: !!pdfDocs.invoice,
     siReady: done(c => cleanNo(c.no) && c.seal.trim()),          // container + seal known for every box
     vgmReady: done(c => cleanNo(c.no) && c.tare !== "" && c.date), // tare + weighing date known for every box
-    containers: ctrs.map((c,i) => ({ seq:i+1, loadDate:c.date || "", size:c.type, no:cleanNo(c.no), seal:c.seal.trim(), tare:c.tare === "" ? null : num(c.tare),
+    containers: ctrs.map((c,i) => ({ seq:i+1, loadDate:c.date || "", size:c.type, di:ctrDi(c,i), no:cleanNo(c.no), seal:c.seal.trim(), tare:c.tare === "" ? null : num(c.tare),
       pcs:num(c.pcs), kg:num(c.kg), cbm:num(c.cbm) })),
   };
 }
-// Basic hand-off: tab-separated rows in the report's column order (A..P) to paste into Excel.
+// Basic hand-off: tab-separated rows in the report's column order (A..Q) to paste into Excel.
 // Same conventions as the report itself (and the Office Script): 40DC, carrier without spaces, port = city.
 const REPORT_SIZE = { "40HQ":"40DC", "40GP":"40DC", "20GP":"20DC" };
 // dates as the report shows them ("2-Nov"); Excel reads that as a date in the current year,
@@ -943,7 +950,7 @@ function reportRows(){
   return p.containers.map((c,i) => [
     $("f_job").value.trim(), D(c.loadDate), p.booking, i ? "" : p.containers.length, REPORT_SIZE[c.size] || c.size,
     i ? "" : p.invoice, i ? "" : p.vessel, D(p.etd), p.carrier.replace(/\s+/g,"").toUpperCase(), p.port.toUpperCase(),
-    D(p.siCut), D(p.vgmCut), D(p.closing), p.returnCode, c.no, c.seal,   // stops at P: the tick boxes (R–X) stay as the team sets them
+    D(p.siCut), D(p.vgmCut), D(p.closing), p.returnCode, c.di, c.no, c.seal,   // O DI · P Container · Q Seal — stops at Q: the tick boxes stay as the team sets them
   ]);
 }
 async function copyText(text){
@@ -961,7 +968,7 @@ $("btnCopyRows").onclick = async () => {
   const ok = await copyText(rows.map(r => r.join("\t")).join("\r\n"));
   if (ok) saveJob("report");
   $("copyResult").style.color = ok && warn ? "var(--warn)" : "";
-  $("copyResult").textContent = ok ? `คัดลอก ${rows.length} แถว (A–P) แล้ว — คลิกช่อง A ของแถวว่างแรกใน Report แล้ว Ctrl+V · QTY/INV/VESSEL อยู่แถวแรก ถ้าต้องการให้ merge เองเหมือนงานอื่น` + warn : "คัดลอกไม่สำเร็จ — เบราว์เซอร์ไม่อนุญาตคลิปบอร์ด";
+  $("copyResult").textContent = ok ? `คัดลอก ${rows.length} แถว (A–Q) แล้ว — คลิกช่อง A ของแถวว่างแรกใน Report แล้ว Ctrl+V · QTY/INV/VESSEL อยู่แถวแรก ถ้าต้องการให้ merge เองเหมือนงานอื่น` + warn : "คัดลอกไม่สำเร็จ — เบราว์เซอร์ไม่อนุญาตคลิปบอร์ด";
 };
 $("btnCopyCtr").onclick = async () => {
   if (!booking) return;
@@ -969,7 +976,7 @@ $("btnCopyCtr").onclick = async () => {
   if (!rows.some(r => r[0] || r[1])) { $("copyResult").textContent = "ยังไม่มีเลขตู้ / ซีลจากทีมตู้ — ยังไม่มีอะไรให้คัดลอก"; return; }
   const ok = await copyText(rows.map(r => r.join("\t")).join("\r\n"));
   if (ok) saveJob("reportCtr");
-  $("copyResult").textContent = ok ? `คัดลอก Container + Seal ${rows.length} ตู้แล้ว — คลิกช่อง O ของแถวตู้แรกของงานนี้ใน Report แล้ว Ctrl+V` : "คัดลอกไม่สำเร็จ — เบราว์เซอร์ไม่อนุญาตคลิปบอร์ด";
+  $("copyResult").textContent = ok ? `คัดลอก Container + Seal ${rows.length} ตู้แล้ว — คลิกช่อง P (Container) ของแถวตู้แรกของงานนี้ใน Report แล้ว Ctrl+V` : "คัดลอกไม่สำเร็จ — เบราว์เซอร์ไม่อนุญาตคลิปบอร์ด";
 };
 // Power Automate is optional and off until switched on (remembered in this browser)
 try { $("optPA").checked = localStorage.getItem("sivgm_pa") === "1"; } catch(_) {}
