@@ -133,7 +133,7 @@ table.xl{border-collapse:collapse;table-layout:fixed;font-family:Calibri,Arial,s
   <h2><span class="n">1</span>วางไฟล์</h2>
   <div class="drop" id="drop" tabindex="0">
     <b>ลากไฟล์มาวางที่นี่ หรือคลิกเพื่อเลือก</b>
-    <span class="muted">Booking Request · PDF ใบยืนยัน Shinki · C Invoice PDF · ไฟล์ข้อมูลตู้ที่ทีมส่งกลับ · Template (ถ้าเปลี่ยนปลายทาง) — วางไฟล์แนบจากเมลทั้งหมดพร้อมกันได้</span>
+    <span class="muted">Booking Request · PDF ใบยืนยัน Shinki · C Invoice PDF · ไฟล์ Loading ของทีมรถ (SUMITIMO 2026.xlsx — เติมเลขตู้ / ซีล / Tare ให้ตาม DI) · Template (ถ้าเปลี่ยนปลายทาง) — วางไฟล์แนบจากเมลทั้งหมดพร้อมกันได้</span>
     <input type="file" id="fileInput" accept=".xlsx,.pdf" multiple hidden>
   </div>
   <div class="chips">
@@ -377,6 +377,10 @@ async function detect(file){
   const buf = await file.arrayBuffer(), x = await openXlsx(buf);
   const names = x.sheets.map(s => norm(s.name));
   if (names.includes(REQ_SHEET)) return { kind:"team", file, data: parseTeam(await x.cells(x.sheets[names.indexOf(REQ_SHEET)])) };
+  for (const sh of x.sheets) {   // the trucking team's loading plan: header row has "GWS DI." and "CONTAINER NO."
+    const lp = parseLoading(await x.cells(sh));
+    if (lp) return { kind:"loading", file, data: lp };
+  }
   if (["SI DATA","VGM","ATTACH"].every(n => names.some(s => s.startsWith(n)))) return { kind:"template", file, buf };
   const cells = await x.cells(x.sheets[0]);
   const b = parseBooking(cells, x.sheets[0].name);
@@ -545,6 +549,48 @@ function parseTeam(cells){
   }
   return { booking: bk, list };
 }
+// Trucking team's loading plan (e.g. "SUMITIMO 2026.xlsx", sheet "Loading 26"): one row per container,
+// keyed by Booking No. + GWS DI. (the number after the dash in the booking's container type, 40HC-1143891)
+function parseLoading(cells){
+  const rows = rowsOf(cells), nums = Object.keys(rows).map(Number).sort((a,b)=>a-b);
+  const hdr = nums.slice(0, 10).find(r => rows[r].some(x => /^GWS DI\.?$/.test(norm(x.val))) && rows[r].some(x => /^CONTAINER NO\.?$/.test(norm(x.val))));
+  if (!hdr) return null;
+  const col = {};
+  for (const x of rows[hdr]) { const h = norm(x.val);
+    if (/^GWS DI\.?$/.test(h)) col.di = x.c; else if (h === "BOOKING NO.") col.bk = x.c; else if (/^CONTAINER NO\.?$/.test(h)) col.no = x.c;
+    else if (/^SEAL NO\.?$/.test(h)) col.seal = x.c; else if (/^TARE W/.test(h)) col.tare = x.c; }
+  const get = (r,c) => { const x = c && (rows[r]||[]).find(y=>y.c===c); return x ? x.val : ""; };
+  const list = [];
+  for (const r of nums.filter(r => r > hdr)) {
+    const bk = String(get(r,col.bk)).trim(); if (!bk) continue;
+    const t = String(get(r,col.tare)).trim();
+    list.push({ row: r, booking: bk, di: String(get(r,col.di)).trim(), no: cleanNo(get(r,col.no)), seal: String(get(r,col.seal)).trim().toUpperCase(), tare: t === "" ? "" : num(t) });
+  }
+  return { list };
+}
+// rows of the loading plan -> {idx,no,seal,tare} for this job; matched on DI, by order only when the booking's rows carry no DI at all
+function teamFromLoading(lp){
+  const bk = $("f_booking").value.trim(), mine = lp.list.filter(r => r.booking === bk), warn = [];
+  const byDi = {};
+  for (const r of mine.filter(r => r.di)) {
+    const m = byDi[r.di] ||= { no:"", seal:"", tare:"" };
+    for (const k of ["no","seal","tare"]) if (r[k] !== "") {
+      if (m[k] !== "" && m[k] !== r[k]) warn.push(`DI ${r.di}: ${k === "no" ? "Container" : k === "seal" ? "Seal" : "Tare"} มี 2 ค่า (${m[k]} / ${r[k]}) ใช้ค่าแรก`);
+      else m[k] = r[k];
+    }
+  }
+  const list = [];
+  if (Object.keys(byDi).length) {
+    const used = new Set();
+    ctrs.forEach((c,i) => { const d = ctrDi(c,i), m = d && byDi[d]; if (m) { used.add(d); list.push({ idx:i+1, ...m }); } });
+    const extra = Object.keys(byDi).filter(d => !used.has(d));
+    if (extra.length) warn.push(`DI ที่ไม่มีในงานนี้: ${extra.join(", ")}`);
+  } else if (mine.length) {
+    if (mine.length === ctrs.length) mine.forEach((r,i) => list.push({ idx:i+1, no:r.no, seal:r.seal, tare:r.tare }));
+    else warn.push(`แถวของ Booking ${bk} ไม่มี GWS DI. และมี ${mine.length} แถว แต่งานนี้มี ${ctrs.length} ตู้ — จับคู่ไม่ได้`);
+  }
+  return { booking: bk, list, rows: mine.length, warn };
+}
 const cleanNo = v => String(v).toUpperCase().replace(/[\s\-_.]/g,"");
 function applyTeam(t, source){
   if (booking && t.booking && t.booking !== $("f_booking").value.trim()
@@ -582,7 +628,7 @@ async function handleFiles(files){
   const found = [];
   for (const f of files) { try { found.push(await detect(f)); } catch(e) { alert(`อ่านไฟล์ ${f.name} ไม่ได้: ${(e && e.message) || e}`);
     if ($("chipShinki").classList.contains("wait")) { $("chipShinki").textContent = "Shinki PDF: อ่านไม่ได้"; $("chipShinki").className = "chip"; } } }
-  const order = { template:0, booking:1, team:2, shinki:3, invoice:3, skip:4 };
+  const order = { template:0, booking:1, team:2, loading:2, shinki:3, invoice:3, skip:4 };
   found.sort((a,b) => order[a.kind]-order[b.kind]);
   const skipped = found.filter(x => x.kind === "skip").map(x => x.file.name);
   $("skipNote").textContent = skipped.length ? `ไม่ได้ใช้: ${skipped.join(", ")}` : "";
@@ -605,6 +651,14 @@ async function handleFiles(files){
           else { booking = x.data; resetPdfs(); $("chipBooking").textContent = "Booking: " + x.file.name; $("chipBooking").className = "chip done"; fillFromBooking(); }
           if (team.list.length) applyTeam(team, src);
         }
+      }
+      else if (x.kind === "loading") {
+        if (!booking) { alert("วาง Booking Request ก่อน แล้วค่อยวางไฟล์ Loading ของทีมรถ"); continue; }
+        const t = teamFromLoading(x.data);
+        if (!t.rows) { alert(`ไม่พบ Booking ${t.booking} ในไฟล์ ${x.file.name}`); continue; }
+        const n = t.list.some(r => r.no || r.seal || r.tare !== "") ? applyTeam(t, x.file.name) : 0;
+        const msg = n ? `` : `ไฟล์ ${x.file.name} ยังไม่มีเลขตู้ / ซีล / Tare ของ Booking ${t.booking}`;
+        if (msg || t.warn.length) alert([msg, ...t.warn].filter(Boolean).join("\n"));
       }
       else if (x.kind === "team") {
         if (!booking) { alert("วาง Booking Request ก่อน แล้วค่อยวางไฟล์ข้อมูลตู้"); continue; }
