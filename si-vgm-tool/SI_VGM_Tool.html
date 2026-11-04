@@ -354,7 +354,7 @@ function parseBooking(cells, sheetName){
       if (first==="TOTAL") { b.total = { qty:+get(r,col.qty)||0, pcs:+get(r,col.pcs)||0, kg:+get(r,col.kg)||0, cbm:+get(r,col.cbm)||0 }; break; }
       if (!get(r,col.type)) continue;
       const typeCell = String(get(r,col.type)).trim();   // "40HC-1143891" = size - DI (delivery instruction) no.
-      b.lines.push({ date: dateText(get(r,col.date)), type: normType(typeCell.split("-")[0]), di: typeCell.split("-").slice(1).join("-").trim(),
+      b.lines.push({ date: dateText(get(r,col.date)), type: normType(typeCell.split("-")[0]), di: typeCell.split("-").slice(1).join("-").trim(), diText: typeCell.includes("-") ? typeCell : "",
         qty: Math.max(1, parseInt(get(r,col.qty))||1), pcs:+get(r,col.pcs)||0, kg:+get(r,col.kg)||0, cbm:+get(r,col.cbm)||0,
         ctrNo: cleanNo(get(r,col.ctr)), seal: String(get(r,col.seal)).trim().toUpperCase(), tare: String(get(r,col.tare)).trim() === "" ? "" : num(get(r,col.tare)) });
     }
@@ -712,7 +712,7 @@ function fillFromBooking(){
   $("f_line").value = b.line; $("f_cycut").value = b.cyCut; $("f_etd").value = `${b.etd} / ${b.eta}`;
   $("f_commodity").value = b.commodity; $("f_sino").value = [b.siNo, b.shipCode].filter(Boolean).join(" / ");
   ctrs = []; teamInfo = null;
-  for (const l of b.lines) for (let i=0;i<l.qty;i++) ctrs.push(newCtr({ type:l.type, di: l.qty===1 ? (l.di || "") : "",
+  for (const l of b.lines) for (let i=0;i<l.qty;i++) ctrs.push(newCtr({ type:l.type, di: l.qty===1 ? (l.di || "") : "", diText: l.qty===1 ? (l.diText || "") : "",
     pcs: l.qty===1 ? l.pcs : "", kg: l.qty===1 ? l.kg : "", cbm: l.qty===1 ? l.cbm : "", date: textToIso(l.date) }));
   if (!ctrs.length) ctrs.push(blankCtr());
   $("form").classList.remove("hidden");
@@ -720,7 +720,7 @@ function fillFromBooking(){
   renderCtrs();
 }
 function newCtr(o){ const type = o.type || "40HQ";
-  return { no:"", seal:"", di:"", type, pcs:"", kg:"", cbm:"", tare:"", tareSet:false, date:"", fromTeam:{}, ...o }; }
+  return { no:"", seal:"", di:"", diText:"", type, pcs:"", kg:"", cbm:"", tare:"", tareSet:false, date:"", fromTeam:{}, ...o }; }
 function blankCtr(){ const p = ctrs[ctrs.length-1] || {}; return newCtr({ type:p.type, date:p.date||"" }); }
 function setOutName(){
   const city = $("f_pod").value.split(",")[0].trim() || "DEST";
@@ -991,6 +991,13 @@ function ctrDi(c,i){
   const ls = (booking && booking.lines) || [];
   return ls.length === ctrs.length && ls[i] ? (ls[i].di || "") : "";
 }
+// DI as the report shows it: the booking's whole type cell, "40HC-1143891"
+function ctrDiText(c,i){
+  if (c.diText) return c.diText;
+  const ls = (booking && booking.lines) || [];
+  if (ls.length === ctrs.length && ls[i] && ls[i].diText) return ls[i].diText;
+  const d = ctrDi(c,i); return d ? `${c.type.replace(/HQ$/,"HC")}-${d}` : "";
+}
 function reportPayload(){
   const sh = pdfDocs.shinki || {}, cy = textToIso(booking.cyCut);
   const done = k => ctrs.every(c => k(c));
@@ -1002,7 +1009,7 @@ function reportPayload(){
     preInvoice: !!pdfDocs.invoice,
     siReady: done(c => cleanNo(c.no) && c.seal.trim()),          // container + seal known for every box
     vgmReady: done(c => cleanNo(c.no) && c.tare !== "" && c.date), // tare + weighing date known for every box
-    containers: ctrs.map((c,i) => ({ seq:i+1, loadDate:c.date || "", size:c.type, di:ctrDi(c,i), no:cleanNo(c.no), seal:c.seal.trim(), tare:c.tare === "" ? null : num(c.tare),
+    containers: ctrs.map((c,i) => ({ seq:i+1, loadDate:c.date || "", size:c.type, di:ctrDiText(c,i), no:cleanNo(c.no), seal:c.seal.trim(), tare:c.tare === "" ? null : num(c.tare),
       pcs:num(c.pcs), kg:num(c.kg), cbm:num(c.cbm) })),
   };
 }

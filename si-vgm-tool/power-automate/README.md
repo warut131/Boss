@@ -63,7 +63,7 @@ Power Automate (เห็นไฟล์ใหม่) ──> Excel: Run script 
 | QTY / Size | จำนวนตู้ / ขนาด | 40HQ เขียนเป็น `40DC` ตามที่ทีมใช้ |
 | ETD / CARRIER / PORT | Booking | `YANG MING` → `YANGMING`, PORT เฉพาะชื่อเมือง |
 | SI Cut off / VGM Cut off / CLOSING / RETURN | PDF Shinki | RETURN = รหัส PPL เช่น `2836` |
-| DI | ช่องประเภทตู้ใน Booking (`40HC-1143891`) | `1143891` |
+| DI | ช่องประเภทตู้ใน Booking | `40HC-1143891` |
 | Container / Seal | ทีมตู้ | |
 | PRE-INV / SI / VGM | ติ๊กอัตโนมัติ (ไม่เคยเอาติ๊กออก) | |
 
