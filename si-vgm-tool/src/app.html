@@ -928,7 +928,7 @@ function reportPayload(){
       pcs:num(c.pcs), kg:num(c.kg), cbm:num(c.cbm) })),
   };
 }
-// Basic hand-off: tab-separated rows in the report's column order (A..X) to paste into Excel.
+// Basic hand-off: tab-separated rows in the report's column order (A..P) to paste into Excel.
 // Same conventions as the report itself (and the Office Script): 40DC, carrier without spaces, port = city.
 const REPORT_SIZE = { "40HQ":"40DC", "40GP":"40DC", "20GP":"20DC" };
 // dates as the report shows them ("2-Nov"); Excel reads that as a date in the current year,
@@ -939,12 +939,11 @@ function reportDate(iso){
   return `${d}-${MON(m-1)}` + (y === new Date().getFullYear() ? "" : `-${y}`);
 }
 function reportRows(){
-  const p = reportPayload(), yes = b => b ? "TRUE" : "FALSE", D = reportDate;
+  const p = reportPayload(), D = reportDate;
   return p.containers.map((c,i) => [
     $("f_job").value.trim(), D(c.loadDate), p.booking, i ? "" : p.containers.length, REPORT_SIZE[c.size] || c.size,
     i ? "" : p.invoice, i ? "" : p.vessel, D(p.etd), p.carrier.replace(/\s+/g,"").toUpperCase(), p.port.toUpperCase(),
-    D(p.siCut), D(p.vgmCut), D(p.closing), p.returnCode, c.no, c.seal, "",
-    yes(p.preInvoice), "FALSE", yes(p.siReady), yes(p.vgmReady), "FALSE", "FALSE", "FALSE",
+    D(p.siCut), D(p.vgmCut), D(p.closing), p.returnCode, c.no, c.seal,   // stops at P: the tick boxes (R–X) stay as the team sets them
   ]);
 }
 async function copyText(text){
@@ -962,7 +961,7 @@ $("btnCopyRows").onclick = async () => {
   const ok = await copyText(rows.map(r => r.join("\t")).join("\r\n"));
   if (ok) saveJob("report");
   $("copyResult").style.color = ok && warn ? "var(--warn)" : "";
-  $("copyResult").textContent = ok ? `คัดลอก ${rows.length} แถว (A–X) แล้ว — คลิกช่อง A ของแถวว่างแรกใน Report แล้ว Ctrl+V · QTY/INV/VESSEL อยู่แถวแรก ถ้าต้องการให้ merge เองเหมือนงานอื่น` + warn : "คัดลอกไม่สำเร็จ — เบราว์เซอร์ไม่อนุญาตคลิปบอร์ด";
+  $("copyResult").textContent = ok ? `คัดลอก ${rows.length} แถว (A–P) แล้ว — คลิกช่อง A ของแถวว่างแรกใน Report แล้ว Ctrl+V · QTY/INV/VESSEL อยู่แถวแรก ถ้าต้องการให้ merge เองเหมือนงานอื่น` + warn : "คัดลอกไม่สำเร็จ — เบราว์เซอร์ไม่อนุญาตคลิปบอร์ด";
 };
 $("btnCopyCtr").onclick = async () => {
   if (!booking) return;
