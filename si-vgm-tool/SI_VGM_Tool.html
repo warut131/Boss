@@ -103,6 +103,7 @@ table.xl{border-collapse:collapse;table-layout:fixed;font-family:Calibri,Arial,s
 <header>
   <h1>SI / VGM Builder</h1>
   <span class="spacer"></span>
+  <button id="btnNew" type="button">＋ เริ่มงานใหม่</button>
   <button id="btnTheme" type="button" aria-pressed="false"></button>
   <button id="btnJobs" type="button">งานที่บันทึกไว้ (<span id="jobsCount">0</span>)</button>
 </header>
@@ -1350,6 +1351,25 @@ function loadBuiltin(){ if (EMBEDDED_TPL) loadTemplate(unb64(EMBEDDED_TPL.data),
 let remembered = null;
 try { remembered = JSON.parse(localStorage.getItem("sivgm_tpl")||"null"); } catch(_){}
 if (remembered) loadTemplate(unb64(remembered.data), remembered.name + " (จำไว้)").catch(loadBuiltin); else loadBuiltin();
+// start a clean job: the current one is saved first, then everything goes back to the start (built-in template)
+$("btnNew").onclick = () => {
+  if (booking && !confirm(`เริ่มงานใหม่?\nงาน Booking ${$("f_booking").value.trim() || booking.booking} จะถูกบันทึกไว้ก่อน (เปิดต่อได้จาก "งานที่บันทึกไว้")\nแล้วล้างหน้าจอ และกลับไปใช้ Template ในตัว`)) return;
+  if (booking) saveJob();
+  booking = null; ctrs = []; teamInfo = null; resetPdfs();
+  for (const id of JOB_FIELDS) if ($(id)) $(id).value = "";
+  $("chipBooking").textContent = "Booking: ยังไม่มี"; $("chipTeam").textContent = "ข้อมูลตู้: ยังไม่มี";
+  $("chipBooking").className = $("chipTeam").className = "chip";
+  $("skipNote").textContent = ""; $("skipNote").classList.add("hidden");
+  $("msgs").innerHTML = ""; $("ctrBody").innerHTML = ""; $("ctrFoot").innerHTML = "";
+  $("copyResult").textContent = "งานใหม่: คลิกช่อง A ของแถวว่างแถวแรกใน Report แล้ว Ctrl+V · งานเดิม: คลิกช่อง P (Container) ของแถวตู้แรกแล้ว Ctrl+V";
+  $("copyResult").style.color = "";
+  $("saveInfo").textContent = "บันทึกงานไว้ แล้วกลับมาเปิดต่อได้จากปุ่ม \"งานที่บันทึกไว้\" มุมบนขวา (บันทึกให้อัตโนมัติด้วยตอนดาวน์โหลด SI / คัดลอกลง Report)";
+  $("form").classList.add("hidden");
+  pvSheet = 0; $("stage").scrollTop = 0;
+  try { localStorage.removeItem("sivgm_tpl"); } catch(_){}
+  if (EMBEDDED_TPL) loadBuiltin(); else { templateBuf = null; $("chipTemplate").textContent = "Template: ยังไม่มี"; $("chipTemplate").className = "chip"; $("stage").innerHTML = `<div class="empty">Preview ของไฟล์ SI / VGM จะแสดงที่นี่</div>`; }
+  window.scrollTo(0, 0);
+};
 $("useBuiltin").onclick = e => { e.preventDefault(); try { localStorage.removeItem("sivgm_tpl"); } catch(_){} loadBuiltin(); };
 </script>
 </body>
