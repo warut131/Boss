@@ -871,6 +871,12 @@ class Sheet {
     row.insertBefore(c, next || null); return this.cells[ref] = c;
   }
   clear(c){ while (c.firstChild) c.removeChild(c.firstChild); c.removeAttribute("t"); }
+  // put a formula into a cell that has a typed value instead (recalc fills its cached value)
+  link(ref, f){
+    if (this.formula(ref) !== null) return;
+    const c = this.cell(ref); this.clear(c);
+    const e = this.doc.createElementNS(NS,"f"); e.textContent = f; c.appendChild(e);
+  }
   set(ref, val, mark = true){
     const c = this.cell(ref); this.clear(c);
     if (val === null || val === undefined || val === "") return;
@@ -929,11 +935,11 @@ async function buildBook(){
   for (const s of x.sheets) { const sh = new Sheet(parseXml(await x.zip.file(s.path).async("string")), x.sst); sh.path = s.path; sh.printArea = s.printArea; book[s.name] = sh; }
   const find = n => x.sheets.find(s => norm(s.name).startsWith(n)).name;
   const names = { si: find("SI DATA"), vgm: find("VGM"), att: find("ATTACH") };
-  if (booking) fill(book[names.si], book[names.vgm], book[names.att]);
+  if (booking) fill(book[names.si], book[names.vgm], book[names.att], names.att);
   recalc(book);
   return { zip: x.zip, book, names };
 }
-function fill(si, vgm, att){
+function fill(si, vgm, att, attName){
   const s = sums(), n = ctrs.length;
   si.set(SI.booking, /^\d+$/.test($("f_booking").value.trim()) ? +$("f_booking").value.trim() : $("f_booking").value.trim());
   si.set(SI.vessel, $("f_vessel").value.trim());
@@ -954,6 +960,9 @@ function fill(si, vgm, att){
   att.missing = new Set(); vgm.missing = new Set();
   for (let i=0;i<MAX_CTR;i++) {
     const c = ctrs[i], ar = ATTACH_FIRST+i, vr = VGM_FIRST+i;
+    // VGM container no. / cargo weight come from the ATTACH sheet as in the blank template; a filled SI used as the
+    // template has them typed in, so they would never change — put the links back
+    vgm.link("A"+vr, `'${attName}'!B${ar}`); vgm.link("D"+vr, `'${attName}'!F${ar}`);
     att.set("B"+ar, c ? cleanNo(c.no) : ""); att.set("C"+ar, c ? c.seal.trim() : "");
     att.set("D"+ar, c ? num(c.pcs) : ""); att.set("F"+ar, c ? num(c.kg) : ""); att.set("H"+ar, c ? num(c.cbm) : "");
     if (!c || att.formula("J"+ar) === null || c.type !== "40HQ") att.set("J"+ar, c ? c.type : "");
